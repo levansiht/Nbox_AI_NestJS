@@ -1,15 +1,10 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
-import { ROLENAME } from 'src/shared/contants/role.constant';
+import { Injectable, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
 import { HashingService } from 'src/shared/services/hashing.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
 import { LoginBodyDTO } from './auth.dto';
 import { TokenService } from 'src/shared/services/token.service';
 import { isNotFoundPrismaError, isUniqueConstrainPrismaError } from 'src/shared/helper';
+import { RolesService } from './roles.service';
 
 @Injectable()
 export class AuthService {
@@ -17,18 +12,12 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly prisma: PrismaService,
     private readonly tokenService: TokenService,
+    private readonly rolesService: RolesService,
   ) {}
 
   async register(body: any) {
     try {
-      const userRole = await this.prisma.role.findFirst({
-        where: { name: ROLENAME.User },
-      });
-
-      if (!userRole) {
-        throw new InternalServerErrorException('Default user role not found. Please run database seed.');
-      }
-
+      const clientRoleId = await this.rolesService.getClientRoleId();
       const hashedPassword = await this.hashingService.hash(body.password);
       const user = await this.prisma.user.create({
         data: {
@@ -36,7 +25,7 @@ export class AuthService {
           password: hashedPassword,
           name: body.name,
           phoneNumber: body.phoneNumber,
-          roleId: userRole.id,
+          roleId: clientRoleId,
         },
       });
       return user;
