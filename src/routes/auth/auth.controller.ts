@@ -8,7 +8,7 @@ export class AuthController {
 
   @SerializeOptions({ type: RegisterResDTO })
   @Post('register')
-  register(@Body() body: RegisterBodyDTO) {
-    return this.authService.register(body);
+  async register(@Body() body: RegisterBodyDTO) {
+    return await this.authService.register(body);
   }
 }
