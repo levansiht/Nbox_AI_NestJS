@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from 'generated/prisma/client';
 import { ROLENAME } from 'src/shared/contants/role.constant';
 import { HashingService } from 'src/shared/services/hashing.service';
@@ -34,9 +34,7 @@ export class AuthService {
       return user;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        const target = error.meta?.target as string[];
-        const field = target?.[0] || 'field';
-        throw new ConflictException(`${field.charAt(0).toUpperCase() + field.slice(1)} already in use`);
+        throw new UnprocessableEntityException('Email already in use.');
       }
       throw error;
     }
