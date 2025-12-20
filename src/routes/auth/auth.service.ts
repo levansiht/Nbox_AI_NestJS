@@ -4,12 +4,12 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma } from 'generated/prisma/client';
 import { ROLENAME } from 'src/shared/contants/role.constant';
 import { HashingService } from 'src/shared/services/hashing.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
 import { LoginBodyDTO } from './auth.dto';
 import { TokenService } from 'src/shared/services/token.service';
+import { isNotFoundPrismaError, isUniqueConstrainPrismaError } from 'src/shared/helper';
 
 @Injectable()
 export class AuthService {
@@ -41,7 +41,7 @@ export class AuthService {
       });
       return user;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (isUniqueConstrainPrismaError(error)) {
         throw new UnprocessableEntityException('Email already in use.');
       }
       throw error;
@@ -104,7 +104,7 @@ export class AuthService {
 
       return this.generateTokens({ userId });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      if (isNotFoundPrismaError(error)) {
         throw new UnauthorizedException('Invalid refresh token.');
       }
       throw new UnauthorizedException();
