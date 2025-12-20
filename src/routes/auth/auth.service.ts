@@ -1,14 +1,22 @@
-import { Injectable, InternalServerErrorException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Prisma } from 'generated/prisma/client';
 import { ROLENAME } from 'src/shared/contants/role.constant';
 import { HashingService } from 'src/shared/services/hashing.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
+import { LoginBodyDTO } from './auth.dto';
+import { TokenService } from 'src/shared/services/token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly hashingService: HashingService,
     private readonly prisma: PrismaService,
+    private readonly tokenService: TokenService,
   ) {}
 
   async register(body: any) {
@@ -38,5 +46,43 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  async login(body: LoginBodyDTO) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: body.email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    const isPasswordValid = await this.hashingService.compare(body.password, user.password);
+    if (!isPasswordValid) {
+      throw new UnprocessableEntityException({
+        field: 'password',
+        message: 'Invalid password.',
+      });
+    }
+    const tokens = await this.generateTokens({ userId: user.id });
+
+    return tokens;
+  }
+  async generateTokens(payload: { userId: number }) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.signAccessToken(payload),
+      this.tokenService.signRefreshToken(payload),
+    ]);
+
+    const decodedRefreshToken = await this.tokenService.verifyRefreshToken(refreshToken);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: payload.userId,
+        token: refreshToken,
+        expiredAt: new Date(decodedRefreshToken.exp * 1000),
+      },
+    });
+    return { accessToken, refreshToken };
   }
 }
