@@ -85,4 +85,29 @@ export class AuthService {
     });
     return { accessToken, refreshToken };
   }
+
+  async refreshTokens(refreshToken: string) {
+    try {
+      const { userId } = await this.tokenService.verifyRefreshToken(refreshToken);
+
+      await this.prisma.refreshToken.findUniqueOrThrow({
+        where: {
+          token: refreshToken,
+        },
+      });
+
+      await this.prisma.refreshToken.delete({
+        where: {
+          token: refreshToken,
+        },
+      });
+
+      return this.generateTokens({ userId });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new UnauthorizedException('Invalid refresh token.');
+      }
+      throw new UnauthorizedException();
+    }
+  }
 }

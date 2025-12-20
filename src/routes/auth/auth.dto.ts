@@ -8,6 +8,15 @@ export class LoginBodyDTO {
   @IsString()
   password: string;
 }
+
+export class LoginResDTO {
+  accessToken: string;
+  refreshToken: string;
+
+  constructor(partial: Partial<LoginResDTO>) {
+    Object.assign(this, partial);
+  }
+}
 export class RegisterBodyDTO extends LoginBodyDTO {
   @IsString()
   name: string;
@@ -36,3 +45,10 @@ export class RegisterResDTO extends SuccessResDTO {
     Object.assign(this, partial);
   }
 }
+
+export class RefreshTokenBodyDTO {
+  @IsString()
+  refreshToken: string;
+}
+
+export class RefreshTokenResDTO extends LoginResDTO {}
