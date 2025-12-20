@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
 import { HashingService } from 'src/shared/services/hashing.service';
 import { PrismaService } from 'src/shared/services/prisma.service';
-import { LoginBodyDTO } from './auth.dto';
 import { TokenService } from 'src/shared/services/token.service';
 import { isNotFoundPrismaError, isUniqueConstrainPrismaError } from 'src/shared/helper';
 import { RolesService } from './roles.service';
@@ -27,6 +26,17 @@ export class AuthService {
           phoneNumber: body.phoneNumber,
           roleId: clientRoleId,
         },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          phoneNumber: true,
+          avatar: true,
+          status: true,
+          roleId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
       return user;
     } catch (error) {
@@ -36,8 +46,7 @@ export class AuthService {
       throw error;
     }
   }
-
-  async login(body: LoginBodyDTO) {
+  async login(body: any) {
     const user = await this.prisma.user.findUnique({
       where: { email: body.email },
     });

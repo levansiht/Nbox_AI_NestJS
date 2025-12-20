@@ -1,63 +1,42 @@
-import { Exclude, Type } from 'class-transformer';
-import { IsString } from 'class-validator';
-import { SuccessResDTO } from 'src/shared/shared.dto';
+import { UserStatus } from 'generated/prisma/enums';
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
-export class LoginBodyDTO {
-  @IsString()
-  email: string;
-  @IsString()
-  password: string;
-}
+export const UserSchema = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  name: z.string().min(2).max(100),
+  phoneNumber: z.string().min(10).max(15).optional(),
+  avatar: z.string().nullable(),
+  status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BANNED]),
+  roleId: z.number(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
 
-export class LoginResDTO {
-  accessToken: string;
-  refreshToken: string;
+export const RegisterBodySchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8).max(100),
+    name: z.string().min(2).max(100),
+    confirmPassword: z.string().min(8).max(100),
+    phoneNumber: z.string().min(10).max(15).optional(),
+  })
+  .superRefine(({ password, confirmPassword }, ctx) => {
+    if (password !== confirmPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Passwords do not match',
+        path: ['confirmPassword'],
+      });
+    }
+  });
 
-  constructor(partial: Partial<LoginResDTO>) {
-    Object.assign(this, partial);
-  }
-}
-export class RegisterBodyDTO extends LoginBodyDTO {
-  @IsString()
-  name: string;
-  @IsString()
-  confirmPassword: string;
-}
+export class RegisterBodyDTO extends createZodDto(RegisterBodySchema) {}
 
-export class RegisterData {
-  id: number;
-  email: string;
-  name: string;
-  @Exclude() password: string;
-  createdAt: Date;
-  updatedAt: Date;
+export const RegisterResData = z.object({
+  statusCode: z.number(),
+  data: UserSchema,
+});
 
-  constructor(partial: Partial<RegisterData>) {
-    Object.assign(this, partial);
-  }
-}
-
-export class RegisterResDTO extends SuccessResDTO {
-  @Type(() => RegisterData)
-  declare data: RegisterData;
-  constructor(partial: Partial<RegisterResDTO>) {
-    super(partial);
-    Object.assign(this, partial);
-  }
-}
-
-export class RefreshTokenBodyDTO {
-  @IsString()
-  refreshToken: string;
-}
-
-export class RefreshTokenResDTO extends LoginResDTO {}
-
-export class LogoutBodyDTO extends RefreshTokenBodyDTO {}
-
-export class LogoutResDTO {
-  message: string;
-  constructor(partial: Partial<LogoutResDTO>) {
-    Object.assign(this, partial);
-  }
-}
+export class RegisterResDTO extends createZodDto(RegisterResData) {}
