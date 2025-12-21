@@ -14,3 +14,11 @@ export const ConditionGuard = {
 } as const;
 
 export type ConditionGuardType = (typeof ConditionGuard)[keyof typeof ConditionGuard];
+
+export const UserStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  BANNED: 'BANNED',
+} as const;
+
+export type UserStatusType = (typeof UserStatus)[keyof typeof UserStatus];

@@ -39,7 +39,7 @@ model User {
   name        String  @db.VarChar(500)
   phoneNumber String?
   avatar      String?
-
+  totpSecret                  String?               @db.VarChar(500)
   status UserStatus @default(INACTIVE)
 
   roleId Int
