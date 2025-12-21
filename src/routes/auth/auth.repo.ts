@@ -81,7 +81,7 @@ export class AuthRepository {
       where: uniqueObject,
       include: {
         role: true,
-      },  
+      },
     });
   }
 }
