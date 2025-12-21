@@ -173,3 +173,24 @@ model TopUpPackage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+
+model VerificationCode {
+  id    Int                  @id @default(autoincrement())
+  email String               @db.VarChar(500)
+  code  String               @db.VarChar(50)
+  type  VerificationCodeType
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, type])
+  @@index([expiresAt])
+}
+
+enum VerificationCodeType {
+  REGISTER
+  FORGOT_PASSWORD
+  LOGIN
+  DISABLE_2FA
+}

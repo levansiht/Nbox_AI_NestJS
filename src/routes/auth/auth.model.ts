@@ -1,25 +1,6 @@
-import { UserStatus } from 'src/shared/contants/auth.constant';
+import { TypeOfVerificationCode } from 'src/shared/contants/auth.constant';
+import { UserSchema } from 'src/shared/models/shared-user.model';
 import { z } from 'zod';
-
-export const UserSchema = z.object({
-  id: z.number(),
-  email: z.string().email(),
-  password: z.string(),
-  name: z.string().min(2).max(500),
-  phoneNumber: z.string().nullable(),
-  totpSecret: z.string().nullable(),
-  avatar: z.string().nullable(),
-  status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BANNED]),
-  roleId: z.number(),
-  createdById: z.number().nullable(),
-  updatedById: z.number().nullable(),
-  deletedById: z.number().nullable(),
-  deletedAt: z.date().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type UserType = z.infer<typeof UserSchema>;
 
 export const RegisterBodySchema = UserSchema.pick({
   email: true,
@@ -29,6 +10,7 @@ export const RegisterBodySchema = UserSchema.pick({
 })
   .extend({
     confirmPassword: z.string().min(8).max(100),
+    code: z.string().length(6),
   })
   .strict()
   .superRefine(({ password, confirmPassword }, ctx) => {
@@ -48,3 +30,25 @@ export const RegisterResSchema = UserSchema.omit({
 
 export type RegisterBodyType = z.infer<typeof RegisterBodySchema>;
 export type RegisterResType = z.infer<typeof RegisterResSchema>;
+
+export const VerificationCode = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  code: z.string(),
+  type: z.enum([
+    TypeOfVerificationCode.REGISTER,
+    TypeOfVerificationCode.FORGOT_PASSWORD,
+    TypeOfVerificationCode.LOGIN,
+    TypeOfVerificationCode.DISABLE_2FA,
+  ]),
+  expiresAt: z.date(),
+  createdAt: z.date(),
+});
+
+export type VerificationCodeType = z.infer<typeof VerificationCode>;
+
+export const SendOTPBodySchema = VerificationCode.pick({
+  email: true,
+  type: true,
+}).strict();
+export type SendOTPBodyType = z.infer<typeof SendOTPBodySchema>;

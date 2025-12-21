@@ -1,9 +1,15 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { HashingService } from 'src/shared/services/hashing.service';
-import { isUniqueConstrainPrismaError } from 'src/shared/helper';
+import { generateOTP, isUniqueConstrainPrismaError } from 'src/shared/helper';
 import { RolesService } from './roles.service';
-import { RegisterBodyType } from './auth.model';
+import { RegisterBodyType, SendOTPBodyType, VerificationCodeType } from './auth.model';
 import { AuthRepository } from './auth.repo';
+import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo';
+import { addMilliseconds } from 'date-fns';
+import envConfig from 'src/shared/config';
+import ms from 'ms';
+import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/contants/auth.constant';
+import { PrismaService } from 'src/shared/services/prisma.service';
 
 @Injectable()
 export class AuthService {
@@ -11,10 +17,31 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly rolesService: RolesService,
     private readonly authRepository: AuthRepository,
+    private readonly sharedUserRepository: SharedUserRepository,
+    private readonly prismaSerivce: PrismaService,
   ) {}
 
   async register(body: RegisterBodyType) {
     try {
+      const verificationCode = await this.authRepository.findVerificationCode(
+        body.email,
+        body.code,
+        TypeOfVerificationCode.REGISTER,
+      );
+      if (!verificationCode) {
+        throw new UnprocessableEntityException({
+          message: 'Invalid verification code.',
+          path: 'code',
+        });
+      }
+
+      if (verificationCode.expiresAt < new Date()) {
+        throw new UnprocessableEntityException({
+          message: 'Verification code has expired.',
+          path: 'code',
+        });
+      }
+
       const clientRoleId = await this.rolesService.getClientRoleId();
       const hashedPassword = await this.hashingService.hash(body.password);
       const user = await this.authRepository.createUser({
@@ -27,7 +54,10 @@ export class AuthService {
       return user;
     } catch (error) {
       if (isUniqueConstrainPrismaError(error)) {
-        throw new UnprocessableEntityException('Email already in use.');
+        throw new UnprocessableEntityException({
+          message: 'Email already exists.',
+          path: 'email',
+        });
       }
       throw error;
     }
@@ -112,4 +142,38 @@ export class AuthService {
   //     throw new UnauthorizedException();
   //   }
   // }
+
+  async sendOTP(body: SendOTPBodyType) {
+    const user = await this.sharedUserRepository.findUnique({ email: body.email });
+    if (user) {
+      throw new UnprocessableEntityException({
+        message: 'Email already exists.',
+        path: 'email',
+      });
+    }
+
+    const code = generateOTP();
+    const verificationCode = await this.authRepository.createVerificationCode({
+      email: body.email,
+      code,
+      type: body.type,
+      expiresAt: addMilliseconds(new Date(), ms(envConfig.OTP_EXPIRES_IN as ms.StringValue)),
+    });
+    return verificationCode;
+  }
+
+  async findUniqueVerificationCode(
+    uniqueValue:
+      | { id: number }
+      | {
+          email_type: {
+            email: string;
+            type: TypeOfVerificationCodeType;
+          };
+        },
+  ): Promise<VerificationCodeType | null> {
+    return this.prismaSerivce.verificationCode.findUnique({
+      where: uniqueValue,
+    });
+  }
 }
