@@ -1,15 +1,14 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
 import { HashingService } from 'src/shared/services/hashing.service';
 import { generateOTP, isUniqueConstrainPrismaError } from 'src/shared/helper';
 import { RolesService } from './roles.service';
-import { LoginBodyType, RegisterBodyType, SendOTPBodyType } from './auth.model';
+import { LoginBodyType, RefreshTokenBodyType, RegisterBodyType, SendOTPBodyType } from './auth.model';
 import { AuthRepository } from './auth.repo';
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo';
 import { addMilliseconds } from 'date-fns';
 import envConfig from 'src/shared/config';
 import ms from 'ms';
 import { TypeOfVerificationCode } from 'src/shared/contants/auth.constant';
-import { PrismaService } from 'src/shared/services/prisma.service';
 import { EmailService } from 'src/shared/services/email.service';
 import { TokenService } from 'src/shared/services/token.service';
 import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type';
@@ -21,7 +20,6 @@ export class AuthService {
     private readonly rolesService: RolesService,
     private readonly authRepository: AuthRepository,
     private readonly sharedUserRepository: SharedUserRepository,
-    private readonly prismaService: PrismaService,
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
   ) {}
@@ -86,7 +84,7 @@ export class AuthService {
       });
     }
 
-   const device= await this.authRepository.createDevice({
+    const device = await this.authRepository.createDevice({
       userId: user.id,
       userAgent: body.userAgent,
       ip: body.ip,
@@ -118,31 +116,45 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  // async refreshTokens(refreshToken: string) {
-  //   try {
-  //     const { userId } = await this.tokenService.verifyRefreshToken(refreshToken);
+  async refreshTokens({ refreshToken, userAgent, ip }: RefreshTokenBodyType & { userAgent: string; ip: string }) {
+    try {
+      const { userId } = await this.tokenService.verifyRefreshToken(refreshToken);
 
-  //     await this.authRepository.createRefreshToken({
-  //       userId,
-  //       token: refreshToken,
-  //       expiredAt: new Date(decodedRefreshToken.exp * 1000),
-  //       deviceId: 0, // You might want to replace this with the actual deviceId if available
-  //     });
+      const refreshTokenInDB = await this.authRepository.findUniqueRefreshTokenIncludeRole({
+        token: refreshToken,
+      });
 
-  //     await this.prisma.refreshToken.delete({
-  //       where: {
-  //         token: refreshToken,
-  //       },
-  //     });
+      if (!refreshTokenInDB) {
+        throw new UnauthorizedException({
+          message: 'Refresh token has been used.',
+        });
+      }
 
-  //     return this.generateTokens({ userId });
-  //   } catch (error) {
-  //     if (isNotFoundPrismaError(error)) {
-  //       throw new UnauthorizedException('Invalid refresh token.');
-  //     }
-  //     throw new UnauthorizedException();
-  //   }
-  // }
+      const {
+        deviceId,
+        user: { roleId, name: roleName },
+      } = refreshTokenInDB;
+      const $updateDevice = this.authRepository.updateDevice(deviceId, {
+        userAgent,
+        ip,
+      });
+
+      const $deleteRefreshToken = this.authRepository.deleteRefreshToken({
+        token: refreshToken,
+      });
+
+      const $tokens = this.generateTokens({ userId, deviceId, roleId, roleName });
+
+      const [, , tokens] = await Promise.all([$updateDevice, $deleteRefreshToken, $tokens]);
+
+      return tokens;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException();
+    }
+  }
 
   // async logout(refreshToken: string) {
   //   try {
