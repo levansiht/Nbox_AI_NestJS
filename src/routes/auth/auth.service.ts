@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
 import { HashingService } from 'src/shared/services/hashing.service';
-import { generateOTP, isUniqueConstrainPrismaError } from 'src/shared/helper';
+import { generateOTP, isNotFoundPrismaError, isUniqueConstrainPrismaError } from 'src/shared/helper';
 import { RolesService } from './roles.service';
 import { LoginBodyType, RefreshTokenBodyType, RegisterBodyType, SendOTPBodyType } from './auth.model';
 import { AuthRepository } from './auth.repo';
@@ -156,23 +156,24 @@ export class AuthService {
     }
   }
 
-  // async logout(refreshToken: string) {
-  //   try {
-  //     await this.tokenService.verifyRefreshToken(refreshToken);
+  async logout(refreshToken: string) {
+    try {
+      await this.tokenService.verifyRefreshToken(refreshToken);
 
-  //     await this.prisma.refreshToken.delete({
-  //       where: {
-  //         token: refreshToken,
-  //       },
-  //     });
-  //     return { message: 'Logout successful.' };
-  //   } catch (error) {
-  //     if (isNotFoundPrismaError(error)) {
-  //       throw new UnauthorizedException('Invalid refresh token.');
-  //     }
-  //     throw new UnauthorizedException();
-  //   }
-  // }
+      const deleteRefreshToken = await this.authRepository.deleteRefreshToken({
+        token: refreshToken,
+      });
+
+      await this.authRepository.updateDevice(deleteRefreshToken.deviceId, { isActive: false });
+
+      return { message: 'Logout successful.' };
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw new UnauthorizedException(' Refresh token has been used.');
+      }
+      throw new UnauthorizedException();
+    }
+  }
 
   async sendOTP(body: SendOTPBodyType) {
     const user = await this.sharedUserRepository.findUnique({ email: body.email });
