@@ -7,8 +7,9 @@ import { AccessTokenGuard } from './guards/access-token.guard';
 import { APIKeyGuard } from './guards/api-key.guard';
 import { AuthenticationGuard } from './guards/authentication.guard';
 import { SharedUserRepository } from './repositories/shared-user.repo';
+import { EmailService } from './services/email.service';
 
-const sharedServices = [PrismaService, HashingService, TokenService, SharedUserRepository];
+const sharedServices = [PrismaService, HashingService, TokenService, SharedUserRepository, EmailService];
 
 @Global()
 @Module({

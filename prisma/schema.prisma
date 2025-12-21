@@ -18,7 +18,6 @@ generator client {
   output   = "../generated/prisma"
 }
 
-
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -33,18 +32,18 @@ enum PaymentStatus {
 }
 
 model User {
-  id          Int     @id @default(autoincrement())
-  email       String  @unique
+  id          Int        @id @default(autoincrement())
+  email       String     @unique
   password    String
-  name        String  @db.VarChar(500)
+  name        String     @db.VarChar(500)
   phoneNumber String?
   avatar      String?
-  totpSecret                  String?               @db.VarChar(500)
-  status UserStatus @default(INACTIVE)
+  totpSecret  String?    @db.VarChar(500)
+  status      UserStatus @default(INACTIVE)
 
-  roleId Int
-  role   Role @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  // devices       Device[]
+  roleId        Int
+  role          Role           @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  devices       Device[]
   refreshTokens RefreshToken[]
   wallet        Wallet?
   payments      Payment[]
@@ -62,6 +61,10 @@ model User {
   deletedBy    User?  @relation("UserDeletedBy", fields: [deletedById], references: [id])
   deletedUsers User[] @relation("UserDeletedBy")
 
+  deletedRoles Role[] @relation("RoleDeletedBy")
+  createdRoles Role[] @relation("RoleCreatedBy")
+  updatedRoles Role[] @relation("RoleUpdatedBy")
+
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -74,12 +77,25 @@ model User {
 ////////////////////
 
 model Role {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
-  description String?
-
-  users       User[]
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(500)
+  description String       @default("")
+  isActive    Boolean      @default(true)
   permissions Permission[]
+  users       User[]
+
+  createdById Int?
+  createdBy   User? @relation("RoleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  updatedById Int?
+  updatedBy   User? @relation("RoleUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  deletedById Int?
+  deletedBy   User? @relation("RoleDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([deletedAt])
 }
 
 model Permission {
@@ -91,26 +107,12 @@ model Permission {
   role   Role @relation(fields: [roleId], references: [id])
 }
 
-////////////////////
-/// DEVICE & TOKEN
-////////////////////
-
-// model Device {
-//   id     Int  @id @default(autoincrement())
-//   userId Int
-//   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-//   userAgent String
-//   ipAddress String?
-
-//   createdAt DateTime @default(now())
-// }
-
 model RefreshToken {
-  token  String @unique
-  userId Int
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  deviceId  Int // Foreign key tới Device
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   expiredAt DateTime
   createdAt DateTime @default(now())
 }
@@ -174,6 +176,17 @@ model TopUpPackage {
   updatedAt DateTime @updatedAt
 }
 
+model Device {
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userAgent     String
+  ip            String
+  lastActive    DateTime       @updatedAt // Thay updatedAt bằng lastActive cho ý nghĩa rõ hơn
+  createdAt     DateTime       @default(now())
+  isActive      Boolean        @default(true) // Trạng thái thiết bị (đang login hay đã logout)
+  refreshTokens RefreshToken[] // Liên kết 1-n với RefreshToken
+}
 
 model VerificationCode {
   id    Int                  @id @default(autoincrement())

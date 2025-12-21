@@ -9,23 +9,29 @@ async function main() {
   console.log('Start seeding...');
 
   // Seed roles
-  const adminRole = await prisma.role.upsert({
+  let adminRole = await prisma.role.findFirst({
     where: { name: 'ADMIN' },
-    update: {},
-    create: {
-      name: 'ADMIN',
-      description: 'Administrator role with full permissions',
-    },
   });
+  if (!adminRole) {
+    adminRole = await prisma.role.create({
+      data: {
+        name: 'ADMIN',
+        description: 'Administrator role with full permissions',
+      },
+    });
+  }
 
-  const userRole = await prisma.role.upsert({
+  let userRole = await prisma.role.findFirst({
     where: { name: 'USER' },
-    update: {},
-    create: {
-      name: 'USER',
-      description: 'Default user role',
-    },
   });
+  if (!userRole) {
+    userRole = await prisma.role.create({
+      data: {
+        name: 'USER',
+        description: 'Default user role',
+      },
+    });
+  }
 
   console.log('Seeded roles:', { adminRole, userRole });
 
