@@ -1,6 +1,7 @@
-import { Body, Controller, HttpCode, HttpStatus, Ip, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
+  GetAuthorizationUrlResDTO,
   LoginBodyDTO,
   LoginResDTO,
   LogoutBodyDTO,
@@ -14,12 +15,16 @@ import { ZodSerializerDto } from 'nestjs-zod';
 import { UserAgent } from 'src/shared/decorator/user-agent.decorator';
 import { MessageResDTO } from 'src/shared/models/response.model';
 import { IsPublic } from 'src/shared/decorator/auth.decorator';
+import { GoogleService } from './google.service';
 // import { Auth } from 'src/shared/decorator/auth.decorator';
 // import { AuthType } from 'src/shared/contants/auth.constant';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly googleService: GoogleService,
+  ) {}
 
   @Post('register')
   @IsPublic()
@@ -54,5 +59,12 @@ export class AuthController {
   @ZodSerializerDto(MessageResDTO)
   sendOTP(@Body() body: SendOTPBodyDTO) {
     return this.authService.sendOTP(body);
+  }
+
+  @Get('google-auth-url')
+  @IsPublic()
+  @ZodSerializerDto(GetAuthorizationUrlResDTO)
+  getAuthorizationURL(@UserAgent() userAgent: string, @Ip() ip: string) {
+    return this.googleService.getAuthorizationURL({ userAgent, ip });
   }
 }
