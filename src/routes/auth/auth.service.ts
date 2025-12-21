@@ -185,7 +185,7 @@ export class AuthService {
     }
 
     const code = generateOTP();
-    const verificationCode = await this.authRepository.createVerificationCode({
+    await this.authRepository.createVerificationCode({
       email: body.email,
       code,
       type: body.type,
@@ -203,6 +203,6 @@ export class AuthService {
         path: 'email',
       });
     }
-    return verificationCode;
+    return { message: 'OTP sent successfully.' };
   }
 }
