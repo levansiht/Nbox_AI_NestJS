@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/services/prisma.service';
-import { DeviceType, RefreshTokenType, RegisterBodyType, RoleType, VerificationCodeType } from './auth.model';
+import { DeviceType, RefreshTokenType, RoleType, VerificationCodeType } from './auth.model';
 import { UserType } from 'src/shared/models/shared-user.model';
 import { TypeOfVerificationCodeType } from 'src/shared/contants/auth.constant';
 
@@ -9,13 +9,24 @@ export class AuthRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createUser(
-    user: Omit<RegisterBodyType, 'confirmPassword' | 'code'> & Pick<UserType, 'roleId'>,
+    user: Pick<UserType, 'email' | 'name' | 'phoneNumber' | 'roleId' | 'password'>,
   ): Promise<Omit<UserType, 'password' | 'totpSecret'>> {
     return this.prismaService.user.create({
       data: user,
       omit: {
         password: true,
         totpSecret: true,
+      },
+    });
+  }
+
+  async createUserIncludeRole(
+    user: Pick<UserType, 'email' | 'name' | 'phoneNumber' | 'avatar' | 'roleId' | 'password'>,
+  ): Promise<UserType & { role: RoleType }> {
+    return this.prismaService.user.create({
+      data: user,
+      include: {
+        role: true,
       },
     });
   }

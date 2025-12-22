@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post, Query, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   GetAuthorizationUrlResDTO,
@@ -16,6 +16,8 @@ import { UserAgent } from 'src/shared/decorator/user-agent.decorator';
 import { MessageResDTO } from 'src/shared/models/response.model';
 import { IsPublic } from 'src/shared/decorator/auth.decorator';
 import { GoogleService } from './google.service';
+import { Response } from 'express';
+import envConfig from 'src/shared/config';
 // import { Auth } from 'src/shared/decorator/auth.decorator';
 // import { AuthType } from 'src/shared/contants/auth.constant';
 
@@ -66,5 +68,19 @@ export class AuthController {
   @ZodSerializerDto(GetAuthorizationUrlResDTO)
   getAuthorizationURL(@UserAgent() userAgent: string, @Ip() ip: string) {
     return this.googleService.getAuthorizationURL({ userAgent, ip });
+  }
+
+  @Get('google/callback')
+  @IsPublic()
+  async googleCallback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
+    try {
+      const data = await this.googleService.googleCallback({ code, state });
+      return res.redirect(
+        `${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?accessToken=${data.accessToken}&refreshToken=${data.refreshToken}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      return res.redirect(`${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?errorMessage=${message}`);
+    }
   }
 }
