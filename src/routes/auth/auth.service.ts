@@ -19,6 +19,7 @@ import { EmailService } from 'src/shared/services/email.service';
 import { TokenService } from 'src/shared/services/token.service';
 import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type';
 import { TwoFactorService } from 'src/shared/services/2fa.service';
+import { DisableTwoFactorBodyDTO } from './auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -335,5 +336,37 @@ export class AuthService {
     const { secret, uri } = this.twoFactorService.generateTOTPSecret(user.email);
     await this.authRepository.updateUser({ id: userId }, { totpSecret: secret });
     return { secret, url: uri };
+  }
+
+  async disableTwoFactorAuth(data: DisableTwoFactorBodyDTO & { userId: number }) {
+    const { userId, totpCode, code } = data;
+    const user = await this.sharedUserRepository.findUnique({ id: userId });
+    if (!user) {
+      throw new UnauthorizedException({
+        message: 'User not found.',
+        path: 'email',
+      });
+    }
+    if (totpCode) {
+      const isValid = this.twoFactorService.verifyTOTP({
+        email: user.email,
+        secret: user.totpSecret!,
+        token: totpCode,
+      });
+      if (!isValid) {
+        throw new UnprocessableEntityException({
+          message: 'Invalid two-factor authentication code.',
+          path: 'totpCode',
+        });
+      }
+    } else if (code) {
+      await this.validateVerificationCode({
+        email: user.email,
+        code,
+        type: TypeOfVerificationCode.DISABLE_2FA,
+      });
+    }
+    await this.authRepository.updateUser({ id: userId }, { totpSecret: null });
+    return { message: 'Two-factor authentication has been disabled.' };
   }
 }
