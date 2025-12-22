@@ -18,6 +18,7 @@ import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/c
 import { EmailService } from 'src/shared/services/email.service';
 import { TokenService } from 'src/shared/services/token.service';
 import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type';
+import { TwoFactorService } from 'src/shared/services/2fa.service';
 
 @Injectable()
 export class AuthService {
@@ -28,6 +29,7 @@ export class AuthService {
     private readonly sharedUserRepository: SharedUserRepository,
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
+    private readonly twoFactorService: TwoFactorService,
   ) {}
 
   async validateVerificationCode({
@@ -281,5 +283,24 @@ export class AuthService {
       });
     }
     return { message: 'OTP sent successfully.' };
+  }
+
+  async setupTwoFactorAuth(userId: number) {
+    const user = await this.authRepository.findUniqueUserIncludeRole({ id: userId });
+    if (!user) {
+      throw new UnauthorizedException({
+        message: 'User not found.',
+        path: 'totpCode',
+      });
+    }
+    if (user.totpSecret) {
+      throw new UnprocessableEntityException({
+        message: 'Two-factor authentication is already set up.',
+        path: 'totpCode',
+      });
+    }
+    const { secret, uri } = this.twoFactorService.generateTOTPSecret(user.email);
+    await this.authRepository.updateUser({ id: userId }, { totpSecret: secret });
+    return { secret, url: uri };
   }
 }
