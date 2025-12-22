@@ -115,6 +115,39 @@ export class AuthService {
         message: 'Invalid password.',
       });
     }
+    if (user.totpSecret) {
+      if (!body.totpCode && !body.code) {
+        throw new UnprocessableEntityException([
+          {
+            message: 'Two-factor authentication is enabled for this account. Please provide totpCode or code.',
+            path: 'totpCode',
+          },
+          {
+            message: 'Two-factor authentication is enabled for this account. Please provide totpCode or code.',
+            path: 'code',
+          },
+        ]);
+      }
+      if (body.totpCode) {
+        const isValid = this.twoFactorService.verifyTOTP({
+          email: user.email,
+          secret: user.totpSecret,
+          token: body.totpCode,
+        });
+        if (!isValid) {
+          throw new UnprocessableEntityException({
+            message: 'Invalid two-factor authentication code.',
+            path: 'totpCode',
+          });
+        }
+      } else if (body.code) {
+        await this.validateVerificationCode({
+          email: body.email,
+          code: body.code,
+          type: TypeOfVerificationCode.LOGIN,
+        });
+      }
+    }
 
     const device = await this.authRepository.createDevice({
       userId: user.id,

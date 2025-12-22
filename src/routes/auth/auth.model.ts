@@ -141,7 +141,7 @@ export const DisableTwoFactorBodySchema = z
   })
   .superRefine(({ totpCode, code }, ctx) => {
     const message = 'Either totpCode or code must be provided, but not both.';
-    if ((totpCode !== undefined) === (code !== undefined)) {
+    if (totpCode !== undefined && code !== undefined) {
       ctx.addIssue({
         path: ['totpCode'],
         message: message,
