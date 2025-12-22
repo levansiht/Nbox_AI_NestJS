@@ -39,7 +39,9 @@ export class AuthService {
     code: string;
     type: TypeOfVerificationCodeType;
   }) {
-    const verificationCode = await this.authRepository.findUniqueVerificationCode({ email, code, type });
+    const verificationCode = await this.authRepository.findUniqueVerificationCode({
+      email_code_type: { email, code, type },
+    });
     if (!verificationCode) {
       throw new UnprocessableEntityException({
         message: 'Invalid verification code.',
@@ -74,9 +76,11 @@ export class AuthService {
           roleId: clientRoleId,
         }),
         this.authRepository.deleteVerificationCode({
-          email: body.email,
-          code: body.code,
-          type: TypeOfVerificationCode.REGISTER,
+          email_code_type: {
+            email: body.email,
+            code: body.code,
+            type: TypeOfVerificationCode.REGISTER,
+          },
         }),
       ]);
 
@@ -231,9 +235,11 @@ export class AuthService {
         },
       ),
       this.authRepository.deleteVerificationCode({
-        email,
-        code,
-        type: TypeOfVerificationCode.FORGOT_PASSWORD,
+        email_code_type: {
+          email,
+          code,
+          type: TypeOfVerificationCode.FORGOT_PASSWORD,
+        },
       }),
     ]);
 
