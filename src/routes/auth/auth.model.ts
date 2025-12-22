@@ -111,6 +111,24 @@ export const GoogleAuthStateSchema = z.object({
   ip: z.string(),
 });
 
+export const ForgotPasswordBodySchema = z
+  .object({
+    email: z.string().email(),
+    code: z.string().length(6),
+    newPassword: z.string().min(8).max(100),
+    confirmNewPassword: z.string().min(8).max(100),
+  })
+  .strict()
+  .superRefine(({ newPassword, confirmNewPassword }, ctx) => {
+    if (newPassword !== confirmNewPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Passwords do not match',
+        path: ['confirmNewPassword'],
+      });
+    }
+  });
+
 // Types
 export type RegisterBodyType = z.infer<typeof RegisterBodySchema>;
 export type RegisterResType = z.infer<typeof RegisterResSchema>;
@@ -127,3 +145,4 @@ export type LogoutBodyType = RefreshTokenBodyType;
 export type MessageResType = z.infer<typeof MessageResSchema>;
 export type GetAuthorizationUrlResType = z.infer<typeof GetAuthorizationUrlResSchema>;
 export type GoogleAuthStateType = z.infer<typeof GoogleAuthStateSchema>;
+export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>;
