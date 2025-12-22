@@ -30,6 +30,7 @@ const configSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string(),
   GOOGLE_CLIENT_REDIRECT_URI: z.string(),
   APP_NAME: z.string().default('NBox AI'),
+  GEMINI_API_KEY: z.string(),
 });
 
 const configServer = configSchema.safeParse(process.env);
