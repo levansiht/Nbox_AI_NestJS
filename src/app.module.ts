@@ -9,9 +9,21 @@ import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { PaymentModule } from './routes/payment/payment.module';
 import CustomZodValidationPipe from './shared/pipes/custom-zod-validation.pipe';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
-  imports: [SharedModule, AuthModule, GeminiModule, PaymentModule],
+  imports: [
+    BullModule.forRoot({
+      connection: {
+        host: 'localhost',
+        port: 6379,
+      },
+    }),
+    SharedModule,
+    AuthModule,
+    GeminiModule,
+    PaymentModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

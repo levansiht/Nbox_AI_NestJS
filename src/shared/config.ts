@@ -32,6 +32,11 @@ const configSchema = z.object({
   APP_NAME: z.string().default('NBox AI'),
   GEMINI_API_KEY: z.string(),
   PAYMENT_API_KEY: z.string(),
+  // Payment bank config
+  BANK_ID: z.string().default('MB'), // Mã ngân hàng (MB, VCB, TCB, ACB...)
+  BANK_ACCOUNT_NO: z.string().default(''), // Số tài khoản
+  BANK_ACCOUNT_NAME: z.string().default(''), // Tên chủ tài khoản
+  PAYMENT_DESCRIPTION_PREFIX: z.string().default('NBOX'), // Prefix cho nội dung chuyển khoản
 });
 
 const configServer = configSchema.safeParse(process.env);
