@@ -47,6 +47,8 @@ model User {
   refreshTokens RefreshToken[]
   wallet        Wallet?
   payments      Payment[]
+  topUps        TopUp[]
+  creditLogs    CreditLog[]
 
   // audit
   createdById  Int?
@@ -121,16 +123,95 @@ model RefreshToken {
 /// WALLET
 ////////////////////
 
+////////////////////
+/// WALLET & CREDITS
+////////////////////
+
 model Wallet {
   userId Int  @id
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  balance   Int      @default(0)
-  updatedAt DateTime @updatedAt
+  // Số dư hiện tại (tính bằng VND)
+  balance      Int      @default(0)
+  
+  // Số tiền đã nạp tích lũy (tracking)
+  totalTopUp   Int      @default(0)
+  
+  // Số tiền đã sử dụng tích lũy (tracking)
+  totalSpent   Int      @default(0)
+  
+  topUps       TopUp[]
+  creditLogs   CreditLog[]
+  
+  updatedAt    DateTime @updatedAt
+}
+
+// Lịch sử nạp tiền của user
+model TopUp {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet     Wallet   @relation(fields: [userId], references: [userId], onDelete: Cascade, map: "TopUp_userId_wallet_fkey")
+  
+  // Số tiền nạp (VND) - Min 200,000 VND
+  amount     Int      @db.Integer
+  
+  // Trạng thái nạp tiền
+  status     PaymentStatus @default(PENDING)
+  
+  // Phương thức thanh toán
+  gateway    String   @db.VarChar(100) // BANK_TRANSFER, MOMO, VIETTEL_PAY...
+  
+  // Reference ID từ payment gateway
+  transactionId String? @db.VarChar(255) @unique
+  
+  // Metadata thêm
+  metadata   String?  @db.Text // JSON: thông tin từ gateway
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// Lịch sử trừ credit khi dùng Gemini
+model CreditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet     Wallet   @relation(fields: [userId], references: [userId], onDelete: Cascade, map: "CreditLog_userId_wallet_fkey")
+  
+  amount     Int      @db.Integer
+  
+  action     String   @db.VarChar(100) 
+  
+  requestId  String?  @db.VarChar(255)
+  
+  description String? @db.VarChar(500)
+  
+  createdAt  DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ServicePricing {
+  id         Int      @id @default(autoincrement())
+  
+  action     String   @unique @db.VarChar(100) // GENERATE_IMAGE, UPSCALE...
+  
+  costAmount Int      @db.Integer // 5000, 10000...
+  
+  description String? @db.VarChar(500)
+  isActive   Boolean  @default(true)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 ////////////////////
-/// PAYMENT
+/// PAYMENT (Sepay)
 ////////////////////
 
 model Payment {
@@ -145,35 +226,27 @@ model Payment {
   transactions PaymentTransaction[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt 
 }
 
 model PaymentTransaction {
-  id        Int     @id @default(autoincrement())
-  paymentId Int
-  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  id                  Int       @id @default(autoincrement())
+  paymentId           Int?
+  payment             Payment?  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  gateway             String    @db.VarChar(100)
+  transactionDate     DateTime  @default(now())
+  accountNumber       String?   @db.VarChar(100)
+  subAccount          String?   @db.VarChar(250)
+  amountIn            Decimal   @default(0.00) @db.Decimal(20, 2)
+  amountOut           Decimal   @default(0.00) @db.Decimal(20, 2)
+  accumulated         Decimal   @default(0.00) @db.Decimal(20, 2)
+  code                String?   @db.VarChar(250)
+  transactionContent  String?   @db.Text
+  referenceNumber     String?   @db.VarChar(255)
+  body                String?   @db.Text
+  createdAt           DateTime  @default(now())
 
-  type            String // IN / OUT
-  amount          Int
-  referenceNumber String?
-
-  createdAt DateTime @default(now())
-}
-
-////////////////////
-/// TOP-UP PACKAGE (OPTIONAL)
-////////////////////
-
-model TopUpPackage {
-  id       Int     @id @default(autoincrement())
-  name     String
-  price    Int
-  credit   Int
-  bonus    Int     @default(0)
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([paymentId])
 }
 
 model Device {

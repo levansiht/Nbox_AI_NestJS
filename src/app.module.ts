@@ -7,10 +7,11 @@ import { GeminiModule } from './routes/gemini/gemini.module';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+import { PaymentModule } from './routes/payment/payment.module';
 import CustomZodValidationPipe from './shared/pipes/custom-zod-validation.pipe';
 
 @Module({
-  imports: [SharedModule, AuthModule, GeminiModule],
+  imports: [SharedModule, AuthModule, GeminiModule, PaymentModule],
   controllers: [AppController],
   providers: [
     AppService,
