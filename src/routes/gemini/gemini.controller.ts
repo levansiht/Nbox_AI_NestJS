@@ -24,16 +24,31 @@ import {
   VideoResponseDTO,
 } from './gemini.dto';
 import { ZodSerializerDto } from 'nestjs-zod';
-import { IsPublic } from 'src/shared/decorator/auth.decorator';
+import { Auth } from 'src/shared/decorator/auth.decorator';
+import { AuthType } from 'src/shared/contants/auth.constant';
+import { ActiveUser } from 'src/shared/decorator/active-user.decorator';
+import { AcessTokenPayload } from 'src/shared/types/jwt.type';
+import { CreditService } from 'src/shared/services/credit.service';
+import { GeminiAction } from 'src/shared/contants/pricing.constant';
 
 @Controller('gemini')
 export class GeminiController {
-  constructor(private readonly geminiService: GeminiService) {}
+  constructor(
+    private readonly geminiService: GeminiService,
+    private readonly creditService: CreditService,
+  ) {}
 
   @Post('generate-images')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(ImageArrayResponseDTO)
-  async generateImages(@Body() body: GenerateImagesBodyDTO) {
+  async generateImages(@ActiveUser() user: AcessTokenPayload, @Body() body: GenerateImagesBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.GENERATE_IMAGES,
+      imageCount: body.count ?? 1,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const images = await this.geminiService.generateImages(
       body.sourceImage,
       body.prompt,
@@ -50,41 +65,69 @@ export class GeminiController {
   }
 
   @Post('upscale')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async upscaleImage(@Body() body: UpscaleImageBodyDTO) {
+  async upscaleImage(@ActiveUser() user: AcessTokenPayload, @Body() body: UpscaleImageBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.UPSCALE,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.upscaleImage(body.sourceImage, body.target, body.modelConfig);
     return { image };
   }
 
   @Post('edit-image')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async editImage(@Body() body: EditImageBodyDTO) {
+  async editImage(@ActiveUser() user: AcessTokenPayload, @Body() body: EditImageBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.EDIT_IMAGE,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.editImage(body.sourceImage, body.maskImage, body.prompt, body.modelConfig);
     return { image };
   }
 
   @Post('generate-from-text')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async generateImageFromText(@Body() body: GenerateImageFromTextBodyDTO) {
+  async generateImageFromText(@ActiveUser() user: AcessTokenPayload, @Body() body: GenerateImageFromTextBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.GENERATE_FROM_TEXT,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.generateImageFromText(body.prompt, body.aspectRatio, body.modelConfig);
     return { image };
   }
 
   @Post('generate-video')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(VideoResponseDTO)
-  async generateVideo(@Body() body: GenerateVideoBodyDTO) {
+  async generateVideo(@ActiveUser() user: AcessTokenPayload, @Body() body: GenerateVideoBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.GENERATE_VIDEO,
+    });
     const videoUrl = await this.geminiService.generateVideo(body.prompt, body.sourceImage ?? null);
     return { videoUrl };
   }
 
   @Post('virtual-tour')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async generateVirtualTourImage(@Body() body: VirtualTourBodyDTO) {
+  async generateVirtualTourImage(@ActiveUser() user: AcessTokenPayload, @Body() body: VirtualTourBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.VIRTUAL_TOUR,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.generateVirtualTourImage(
       body.sourceImage,
       body.moveType,
@@ -95,17 +138,30 @@ export class GeminiController {
   }
 
   @Post('mood-images')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(ImageArrayResponseDTO)
-  async generateMoodImages(@Body() body: MoodImagesBodyDTO) {
+  async generateMoodImages(@ActiveUser() user: AcessTokenPayload, @Body() body: MoodImagesBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.MOOD_IMAGES,
+      imageCount: 4,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const images = await this.geminiService.generateMoodImages(body.sourceImage, body.modelConfig);
     return { images };
   }
 
   @Post('merge-furniture')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async mergeFurniture(@Body() body: MergeFurnitureBodyDTO) {
+  async mergeFurniture(@ActiveUser() user: AcessTokenPayload, @Body() body: MergeFurnitureBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.MERGE_FURNITURE,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.mergeFurniture(
       body.roomImage,
       body.furnitureImage,
@@ -116,9 +172,15 @@ export class GeminiController {
   }
 
   @Post('change-material')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async changeMaterial(@Body() body: ChangeMaterialBodyDTO) {
+  async changeMaterial(@ActiveUser() user: AcessTokenPayload, @Body() body: ChangeMaterialBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.CHANGE_MATERIAL,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.changeMaterial(
       body.sourceImage,
       body.referenceImage ?? null,
@@ -129,9 +191,15 @@ export class GeminiController {
   }
 
   @Post('replace-model')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async replaceModelInImage(@Body() body: ReplaceModelBodyDTO) {
+  async replaceModelInImage(@ActiveUser() user: AcessTokenPayload, @Body() body: ReplaceModelBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.REPLACE_MODEL,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.replaceModelInImage(
       body.sourceImage,
       body.referenceImage,
@@ -142,9 +210,15 @@ export class GeminiController {
   }
 
   @Post('insert-building')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async insertBuildingIntoSite(@Body() body: InsertBuildingBodyDTO) {
+  async insertBuildingIntoSite(@ActiveUser() user: AcessTokenPayload, @Body() body: InsertBuildingBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.INSERT_BUILDING,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.insertBuildingIntoSite(
       body.siteImage,
       body.buildingImage,
@@ -155,17 +229,23 @@ export class GeminiController {
   }
 
   @Post('generate-prompts')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(PromptsResponseDTO)
-  async generatePerspectivePrompts(@Body() body: GeneratePromptsBodyDTO) {
+  async generatePerspectivePrompts(@ActiveUser() user: AcessTokenPayload, @Body() body: GeneratePromptsBodyDTO) {
     const prompts = await this.geminiService.generatePerspectivePrompts(body.sourceImage);
     return prompts;
   }
 
   @Post('add-character')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(SingleImageResponseDTO)
-  async addCharacterToScene(@Body() body: AddCharacterBodyDTO) {
+  async addCharacterToScene(@ActiveUser() user: AcessTokenPayload, @Body() body: AddCharacterBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.ADD_CHARACTER,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const image = await this.geminiService.addCharacterToScene(
       body.sceneImage,
       body.characterImage,
@@ -176,25 +256,32 @@ export class GeminiController {
   }
 
   @Post('analyze-floorplan')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(TextResponseDTO)
-  async analyzeFloorplan(@Body() body: AnalyzeFloorplanBodyDTO) {
+  async analyzeFloorplan(@ActiveUser() user: AcessTokenPayload, @Body() body: AnalyzeFloorplanBodyDTO) {
     const text = await this.geminiService.analyzeFloorplan(body.sourceImage, body.roomType, body.roomStyle);
     return { text };
   }
 
   @Post('analyze-masterplan')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(TextResponseDTO)
-  async analyzeMasterplan(@Body() body: AnalyzeMasterplanBodyDTO) {
+  async analyzeMasterplan(@ActiveUser() user: AcessTokenPayload, @Body() body: AnalyzeMasterplanBodyDTO) {
     const text = await this.geminiService.analyzeMasterplan(body.sourceImage);
     return { text };
   }
 
   @Post('colorize-floorplan')
-  @IsPublic()
+  @Auth([AuthType.Bearer])
   @ZodSerializerDto(ImageArrayResponseDTO)
-  async colorizeFloorplan(@Body() body: ColorizeFloorplanBodyDTO) {
+  async colorizeFloorplan(@ActiveUser() user: AcessTokenPayload, @Body() body: ColorizeFloorplanBodyDTO) {
+    await this.creditService.deductCredit({
+      userId: user.userId,
+      action: GeminiAction.COLORIZE_FLOORPLAN,
+      imageCount: 1,
+      usePro: body.modelConfig?.usePro,
+      resolution: body.modelConfig?.resolution,
+    });
     const images = await this.geminiService.colorizeFloorplan(body.sourceImage, body.stylePrompt, body.modelConfig);
     return { images };
   }

@@ -8,6 +8,7 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { PaymentModule } from './routes/payment/payment.module';
+import { WalletModule } from './routes/wallet/wallet.module';
 import CustomZodValidationPipe from './shared/pipes/custom-zod-validation.pipe';
 import { BullModule } from '@nestjs/bullmq';
 
@@ -23,6 +24,7 @@ import { BullModule } from '@nestjs/bullmq';
     AuthModule,
     GeminiModule,
     PaymentModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [
