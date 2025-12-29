@@ -24,7 +24,17 @@ const configSchema = z.object({
   ADMIN_PASSWORD: z.string(),
   ADMIN_PHONENUMBER: z.string(),
   OTP_EXPIRES_IN: z.string(),
-  RESEND_API_KEY: z.string(),
+
+  // Email - Gmail SMTP (primary)
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.string().default('587'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+
+  // Resend (fallback/optional)
+  RESEND_API_KEY: z.string().optional(),
+
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_REDIRECT_URI: z.string(),
@@ -33,10 +43,10 @@ const configSchema = z.object({
   GEMINI_API_KEY: z.string(),
   PAYMENT_API_KEY: z.string(),
   // Payment bank config
-  BANK_ID: z.string().default('MB'), // Mã ngân hàng (MB, VCB, TCB, ACB...)
-  BANK_ACCOUNT_NO: z.string().default(''), // Số tài khoản
-  BANK_ACCOUNT_NAME: z.string().default(''), // Tên chủ tài khoản
-  PAYMENT_DESCRIPTION_PREFIX: z.string().default('NBOX'), // Prefix cho nội dung chuyển khoản
+  BANK_ID: z.string().default('MB'),
+  BANK_ACCOUNT_NO: z.string().default(''),
+  BANK_ACCOUNT_NAME: z.string().default(''),
+  PAYMENT_DESCRIPTION_PREFIX: z.string().default('NBOX'),
 });
 
 const configServer = configSchema.safeParse(process.env);
