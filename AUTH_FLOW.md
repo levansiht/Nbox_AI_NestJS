@@ -7,18 +7,18 @@
 
 Hệ thống Auth hỗ trợ:
 - Đăng ký/Đăng nhập với Email/Password
-- Two-Factor Authentication (2FA)
-- Device Tracking & Session Management
-- Token Refresh Rotation
 - OTP Verification qua Email
-- Role-Based Access Control
+- Quên mật khẩu (Forgot Password)
+- Token Refresh Rotation
+
+**⚠️ Lưu ý quan trọng:** Tất cả các API của Gemini đều yêu cầu đăng nhập (Bearer Token). User phải login thành công trước khi sử dụng các dịch vụ AI.
 
 ---
 
 ## 1. ĐĂNG KÝ (Registration)
 
 ### Step 1: Gửi OTP
-`POST /auth/send-otp`
+`POST /auth/otp`
 
 **Request:**
 ```json
@@ -48,6 +48,7 @@ Hệ thống Auth hỗ trợ:
 {
   "email": "user@example.com",
   "password": "SecurePass123!",
+  "confirmPassword": "SecurePass123!",
   "name": "Nguyễn Văn A",
   "phoneNumber": "0987654321",
   "code": "123456"
@@ -68,12 +69,13 @@ Hệ thống Auth hỗ trợ:
 
 **Errors:**
 - **422**: OTP không hợp lệ hoặc hết hạn
+- **422**: Email đã tồn tại
+- **422**: Passwords do not match
 
 ---
 
 ## 2. ĐĂNG NHẬP (Login)
 
-### Trường hợp 1: Login thông thường
 `POST /auth/login`
 
 **Request Headers:**
@@ -98,40 +100,14 @@ user-agent: Mozilla/5.0 ...
 ```
 
 **Errors:**
-- **422**: Email không tồn tại hoặc sai mật khẩu
-
----
-
-### Trường hợp 2: Login với 2FA
-
-Khi user đã bật 2FA, cần thêm `totpCode` hoặc `code`:
-
-**Request (với TOTP):**
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePass123!",
-  "totpCode": "123456"
-}
-```
-
-**Request (với Email OTP):**
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePass123!",
-  "code": "654321"
-}
-```
-
-**Errors:**
-- **422**: Yêu cầu 2FA code nếu chưa có trong request
+- **422**: Email not found
+- **422**: Invalid password
 
 ---
 
 ## 3. LÀM MỚI TOKEN (Refresh)
 
-`POST /auth/refresh`
+`POST /auth/refresh-token`
 
 **Request:**
 ```json
@@ -151,7 +127,7 @@ Khi user đã bật 2FA, cần thêm `totpCode` hoặc `code`:
 **Lưu ý:** Refresh token cũ sẽ bị xóa (one-time use)
 
 **Errors:**
-- **401**: Token đã bị sử dụng hoặc không hợp lệ
+- **401**: Refresh token has been used hoặc không hợp lệ
 
 ---
 
@@ -178,13 +154,20 @@ Khi user đã bật 2FA, cần thêm `totpCode` hoặc `code`:
 ## 5. QUÊN MẬT KHẨU (Forgot Password)
 
 ### Step 1: Gửi OTP
-`POST /auth/send-otp`
+`POST /auth/otp`
 
 **Request:**
 ```json
 {
   "email": "user@example.com",
   "type": "FORGOT_PASSWORD"
+}
+```
+
+**Response 200:**
+```json
+{
+  "message": "OTP sent successfully."
 }
 ```
 
@@ -198,7 +181,8 @@ Khi user đã bật 2FA, cần thêm `totpCode` hoặc `code`:
 {
   "email": "user@example.com",
   "code": "123456",
-  "newPassword": "NewSecurePass123!"
+  "newPassword": "NewSecurePass123!",
+  "confirmNewPassword": "NewSecurePass123!"
 }
 ```
 
@@ -209,115 +193,32 @@ Khi user đã bật 2FA, cần thêm `totpCode` hoặc `code`:
 }
 ```
 
+**Errors:**
+- **422**: Invalid verification code
+- **422**: Verification code has expired
+- **422**: Passwords do not match
+
 ---
 
-## 6. TWO-FACTOR AUTHENTICATION (2FA)
+## 6. SỬ DỤNG DỊCH VỤ GEMINI (AI Services)
 
-### Bật 2FA
-`POST /auth/2fa/setup`
+> ⚠️ **Yêu cầu xác thực:** Tất cả các endpoint của Gemini đều yêu cầu Bearer Token
 
-**Headers:**
+**Headers cho mọi request Gemini:**
 ```
 Authorization: Bearer {accessToken}
 ```
 
-**Response 200:**
-```json
-{
-  "secret": "JBSWY3DPEHPK3PXP",
-  "url": "otpauth://totp/NboxAI:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=NboxAI"
-}
+**Ví dụ request:**
+```bash
+curl -X POST http://localhost:3000/gemini/generate-images \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{"sourceImage": "base64...", "prompt": "modern interior"}'
 ```
 
-**Lưu ý:** 
-- `secret`: Dùng để backup hoặc nhập manual
-- `url`: Dùng để tạo QR code
-
----
-
-### Tắt 2FA
-`POST /auth/2fa/disable`
-
-**Headers:**
-```
-Authorization: Bearer {accessToken}
-```
-
-**Request (Option A - TOTP):**
-```json
-{
-  "totpCode": "123456"
-}
-```
-
-**Request (Option B - Email OTP):**
-```json
-{
-  "code": "654321"
-}
-```
-
-**Response 200:**
-```json
-{
-  "message": "Two-factor authentication has been disabled."
-}
-```
-
----
-
-## 7. LẤY THÔNG TIN USER
-
-`GET /auth/me`
-
-**Headers:**
-```
-Authorization: Bearer {accessToken}
-```
-
-**Response 200:**
-```json
-{
-  "id": 1,
-  "email": "user@example.com",
-  "name": "Nguyễn Văn A",
-  "phoneNumber": "0987654321",
-  "roleId": 2,
-  "role": {
-    "id": 2,
-    "name": "CLIENT",
-    "description": "Client role"
-  },
-  "totpSecret": "JBSWY3DPEHPK3PXP",
-  "createdAt": "2025-12-23T10:00:00.000Z"
-}
-```
-
----
-
-## 8. QUẢN LÝ THIẾT BỊ
-
-`GET /auth/devices`
-
-**Headers:**
-```
-Authorization: Bearer {accessToken}
-```
-
-**Response 200:**
-```json
-{
-  "devices": [
-    {
-      "id": 1,
-      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
-      "ip": "123.45.67.89",
-      "isActive": true,
-      "createdAt": "2025-12-23T10:00:00.000Z"
-    }
-  ]
-}
-```
+**Lỗi khi không có token:**
+- **401**: Unauthorized - Token không hợp lệ hoặc không có
 
 ---
 
@@ -389,27 +290,67 @@ Authorization: Bearer {accessToken}
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/auth/send-otp` | ❌ | Gửi OTP verification |
+| POST | `/auth/otp` | ❌ | Gửi OTP verification |
 | POST | `/auth/register` | ❌ | Đăng ký tài khoản |
 | POST | `/auth/login` | ❌ | Đăng nhập |
-| POST | `/auth/refresh` | ❌ | Làm mới token |
+| POST | `/auth/refresh-token` | ❌ | Làm mới token |
 | POST | `/auth/logout` | ❌ | Đăng xuất |
 | POST | `/auth/forgot-password` | ❌ | Reset mật khẩu |
-| GET | `/auth/me` | ✅ | Lấy thông tin user |
-| GET | `/auth/devices` | ✅ | Danh sách thiết bị |
-| POST | `/auth/2fa/setup` | ✅ | Bật 2FA |
-| POST | `/auth/2fa/disable` | ✅ | Tắt 2FA |
+
+### Gemini API (Yêu cầu Auth ✅)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/gemini/generate-images` | Tạo ảnh từ ảnh gốc |
+| POST | `/gemini/upscale` | Upscale ảnh |
+| POST | `/gemini/edit-image` | Chỉnh sửa ảnh |
+| POST | `/gemini/generate-from-text` | Tạo ảnh từ text |
+| ... | ... | Các endpoint khác |
 
 ---
 
 ## VALIDATION RULES
 
 - **Email:** `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
-- **Password:** Min 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt
-- **OTP/TOTP:** 6 chữ số `/^\d{6}$/`
+- **Password:** Min 8 ký tự, max 100 ký tự
+- **OTP:** 6 chữ số `/^\d{6}$/`
 - **Phone (VN):** `/^(0|\+84)[3-9]\d{8}$/`
 
 ---
 
-**Last Updated:** December 23, 2025  
-**Version:** 1.0.0
+## FRONTEND IMPLEMENTATION FLOW
+
+### 1. Registration Flow
+```
+[Nhập Email] → [Gửi OTP] → [Nhập OTP + Thông tin] → [Đăng ký] → [Chuyển đến Login]
+```
+
+### 2. Login Flow
+```
+[Nhập Email/Password] → [Login] → [Lưu Tokens] → [Redirect to App]
+```
+
+### 3. Token Management
+```javascript
+// Lưu tokens sau khi login
+localStorage.setItem('accessToken', response.accessToken);
+localStorage.setItem('refreshToken', response.refreshToken);
+
+// Sử dụng token cho API calls
+const headers = {
+  'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+};
+
+// Auto refresh khi token hết hạn
+// Khi nhận 401, gọi /auth/refresh-token với refreshToken
+// Lưu tokens mới và retry request
+```
+
+### 4. Forgot Password Flow
+```
+[Nhập Email] → [Gửi OTP] → [Nhập OTP + Mật khẩu mới] → [Reset] → [Chuyển đến Login]
+```
+
+---
+
+**Last Updated:** January 5, 2026  
+**Version:** 2.0.0
