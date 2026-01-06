@@ -7,7 +7,7 @@ export class RolesService {
   private clientRoleId: number | null = null;
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getClientRoleId() {
+  async getClientRoleId(): Promise<number> {
     if (this.clientRoleId) {
       return this.clientRoleId;
     }
