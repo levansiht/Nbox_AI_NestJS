@@ -22,6 +22,10 @@ export class PaymentService {
     return this.paymentRepo.cancelPayment(userId, paymentId);
   }
 
+  confirmPaymentDemo(userId: number, paymentId: number) {
+    return this.paymentRepo.confirmPaymentDemo(userId, paymentId);
+  }
+
   receiver(body: WebhookPaymentBodyType) {
     return this.paymentRepo.receiver(body);
   }

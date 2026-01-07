@@ -49,6 +49,13 @@ export class PaymentController {
     return this.paymentService.cancelPayment(user.userId, params.paymentId);
   }
 
+  @Post('/:paymentId/confirm-demo')
+  @ZodSerializerDto(MessageResDTO)
+  @Auth([AuthType.Bearer])
+  confirmPaymentDemo(@ActiveUser() user: AcessTokenPayload, @Param() params: CancelPaymentParamsDTO) {
+    return this.paymentService.confirmPaymentDemo(user.userId, params.paymentId);
+  }
+
   @Post('/receiver')
   @ZodSerializerDto(MessageResDTO)
   @IsPublic()
