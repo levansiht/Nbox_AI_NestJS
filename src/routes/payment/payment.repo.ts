@@ -166,6 +166,57 @@ export class PaymentRepo {
     return { message: 'Payment cancelled successfully' };
   }
 
+  async confirmPaymentDemo(userId: number, paymentId: number): Promise<MessageResType> {
+    const payment = await this.prismaService.payment.findFirst({
+      where: {
+        id: paymentId,
+        userId,
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+
+    if (payment.status !== (PaymentStatus.PENDING as string)) {
+      throw new BadRequestException('Payment already processed');
+    }
+
+    // Update payment status to SUCCESS
+    await this.prismaService.payment.update({
+      where: { id: paymentId },
+      data: { status: PaymentStatus.SUCCESS },
+    });
+
+    // Update wallet balance
+    await this.prismaService.wallet.upsert({
+      where: { userId: payment.userId },
+      update: {
+        balance: { increment: payment.amount },
+        totalTopUp: { increment: payment.amount },
+      },
+      create: {
+        userId: payment.userId,
+        balance: payment.amount,
+        totalTopUp: payment.amount,
+        totalSpent: 0,
+      },
+    });
+
+    // Create TopUp record
+    await this.prismaService.topUp.create({
+      data: {
+        userId: payment.userId,
+        amount: payment.amount,
+        status: PaymentStatus.SUCCESS,
+        gateway: payment.gateway,
+        transactionId: `PAY${payment.id}_${Date.now()}`,
+      },
+    });
+
+    return { message: 'Payment confirmed successfully (demo)' };
+  }
+
   async receiver(body: WebhookPaymentBodyType): Promise<MessageResType> {
     let amountIn = 0;
     let amountOut = 0;
@@ -179,7 +230,7 @@ export class PaymentRepo {
 
     await this.prismaService.paymentTransaction.create({
       data: {
-        paymentId: paymentId || null,
+        paymentId: paymentId || undefined,
         gateway: body.gateway,
         transactionDate: parse(body.transactionDate, 'yyyy-MM-dd HH:mm:ss', new Date()),
         accountNumber: body.accountNumber,
@@ -195,7 +246,6 @@ export class PaymentRepo {
     });
 
     if (!paymentId) {
-      console.log('Could not parse payment ID from content:', body.content);
       return { message: 'Transaction recorded (no matching payment found)' };
     }
 
@@ -205,7 +255,6 @@ export class PaymentRepo {
     });
 
     if (!payment) {
-      console.log('Payment not found:', paymentId);
       return { message: 'Transaction recorded (payment not found)' };
     }
 
@@ -214,7 +263,6 @@ export class PaymentRepo {
     }
 
     if (body.transferAmount < payment.amount) {
-      console.log(`Insufficient amount: received ${body.transferAmount}, expected ${payment.amount}`);
       return { message: 'Transaction recorded (insufficient amount)' };
     }
 
