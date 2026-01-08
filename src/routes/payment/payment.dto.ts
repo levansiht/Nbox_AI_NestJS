@@ -1,24 +1,32 @@
 import { createZodDto } from 'nestjs-zod';
 import {
-  WebhookPaymentBodySchema,
   CreatePaymentBodySchema,
-  CreatePaymentResSchema,
-  GetPaymentParamsSchema,
-  PaymentDetailResSchema,
+  GetPaymentStatusParamsSchema,
+  PaymentStatusResSchema,
+  VerifyPaymentBodySchema,
+  VerifyPaymentResSchema,
+  IpnCallbackBodySchema,
+  IpnCallbackResSchema,
   ListPaymentsQuerySchema,
   PaymentListResSchema,
-  CancelPaymentParamsSchema,
 } from './payment.model';
 
-export class WebhookPaymentBodyDTO extends createZodDto(WebhookPaymentBodySchema) {}
-
+// ==================== CREATE PAYMENT ====================
 export class CreatePaymentBodyDTO extends createZodDto(CreatePaymentBodySchema) {}
-export class CreatePaymentResDTO extends createZodDto(CreatePaymentResSchema) {}
+// Response là HTML string, không cần DTO
 
-export class GetPaymentParamsDTO extends createZodDto(GetPaymentParamsSchema) {}
-export class PaymentDetailResDTO extends createZodDto(PaymentDetailResSchema) {}
+// ==================== GET PAYMENT STATUS ====================
+export class GetPaymentStatusParamsDTO extends createZodDto(GetPaymentStatusParamsSchema) {}
+export class PaymentStatusResDTO extends createZodDto(PaymentStatusResSchema) {}
 
+// ==================== IPN CALLBACK ====================
+export class IpnCallbackBodyDTO extends createZodDto(IpnCallbackBodySchema) {}
+export class IpnCallbackResDTO extends createZodDto(IpnCallbackResSchema) {}
+
+// ==================== VERIFY PAYMENT ====================
+export class VerifyPaymentBodyDTO extends createZodDto(VerifyPaymentBodySchema) {}
+export class VerifyPaymentResDTO extends createZodDto(VerifyPaymentResSchema) {}
+
+// ==================== LIST PAYMENTS ====================
 export class ListPaymentsQueryDTO extends createZodDto(ListPaymentsQuerySchema) {}
 export class PaymentListResDTO extends createZodDto(PaymentListResSchema) {}
-
-export class CancelPaymentParamsDTO extends createZodDto(CancelPaymentParamsSchema) {}

@@ -1,252 +1,210 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/shared/services/prisma.service';
-import {
-  WebhookPaymentBodyType,
-  CreatePaymentBodyType,
-  CreatePaymentResType,
-  PaymentDetailResType,
-  ListPaymentsQueryType,
-  PaymentListResType,
-} from './payment.model';
-import { MessageResType } from '../auth/auth.model';
-import { parse } from 'date-fns';
+import { CreatePaymentBodyType, CreatePaymentResType, IpnCallbackBodyType, IpnCallbackResType } from './payment.model';
+import { SePayPgClient } from 'sepay-pg-node';
 import envConfig from 'src/shared/config';
-import { PaymentStatus } from 'src/shared/contants/payment.constant';
+import { PaymentStatus } from 'generated/prisma/enums';
 
 @Injectable()
 export class PaymentRepo {
-  constructor(private readonly prismaService: PrismaService) {}
+  private sePayClient: SePayPgClient;
 
-  private generateTransferContent(paymentId: number): string {
-    return `${envConfig.PAYMENT_DESCRIPTION_PREFIX}${paymentId}`;
-  }
-
-  private generateVietQRUrl(amount: number, transferContent: string): string {
-    const bankId = envConfig.BANK_ID;
-    const accountNo = envConfig.BANK_ACCOUNT_NO;
-    const accountName = encodeURIComponent(envConfig.BANK_ACCOUNT_NAME);
-    const template = 'compact2';
-
-    return `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${accountName}`;
-  }
-
-  private parsePaymentIdFromContent(content: string): number | null {
-    // Kiểm tra format NBOX{id}
-    const prefix = envConfig.PAYMENT_DESCRIPTION_PREFIX;
-    const regex = new RegExp(`${prefix}(\\d+)`, 'i');
-    const match = content.match(regex);
-    if (match) {
-      return parseInt(match[1], 10);
-    }
-
-    // Fallback: kiểm tra nếu content là số thuần
-    const numericContent = content.replace(/\D/g, '');
-    if (numericContent) {
-      return parseInt(numericContent, 10);
-    }
-
-    return null;
+  constructor(private readonly prismaService: PrismaService) {
+    this.sePayClient = new SePayPgClient({
+      env: envConfig.SEPAY_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
+      merchant_id: envConfig.SEPAY_MERCHANT_ID,
+      secret_key: envConfig.SEPAY_SECRET_KEY,
+    });
   }
 
   async createPayment(userId: number, body: CreatePaymentBodyType): Promise<CreatePaymentResType> {
+    const existingPayment = await this.prismaService.payment.findUnique({
+      where: { orderCode: body.orderCode },
+    });
+
+    if (existingPayment) {
+      throw new BadRequestException(`Order code ${body.orderCode} already exists`);
+    }
+
     const payment = await this.prismaService.payment.create({
       data: {
         userId,
+        orderCode: body.orderCode,
         amount: body.amount,
+        description: body.description,
         status: PaymentStatus.PENDING,
-        gateway: body.gateway || 'BANK_TRANSFER',
       },
     });
 
-    const transferContent = this.generateTransferContent(payment.id);
-    const qrCodeUrl = this.generateVietQRUrl(payment.amount, transferContent);
+    const checkoutURL = this.sePayClient.checkout.initCheckoutUrl();
 
-    // Set expiry time (30 phút từ lúc tạo)
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const checkoutFormFields = this.sePayClient.checkout.initOneTimePaymentFields({
+      operation: 'PURCHASE',
+      payment_method: 'BANK_TRANSFER',
+      order_invoice_number: payment.orderCode,
+      order_amount: payment.amount,
+      currency: 'VND',
+      order_description: body.description || 'Payment for order ' + payment.orderCode,
+      success_url: 'http://localhost:3000/success.html',
+      error_url: 'http://localhost:3000/error.html',
+      cancel_url: 'http://localhost:3000/cancel.html',
+    });
 
-    return {
-      paymentId: payment.id,
-      amount: payment.amount,
-      status: payment.status,
-      qrCodeUrl,
-      bankInfo: {
-        bankId: envConfig.BANK_ID,
-        accountNo: envConfig.BANK_ACCOUNT_NO,
-        accountName: envConfig.BANK_ACCOUNT_NAME,
-        transferContent,
-      },
-      expiresAt: expiresAt.toISOString(),
-    };
+    const htmlForm = this.generateAutoSubmitForm(checkoutURL, checkoutFormFields);
+
+    return htmlForm;
   }
 
-  async getPaymentById(userId: number, paymentId: number): Promise<PaymentDetailResType> {
-    const payment = await this.prismaService.payment.findFirst({
-      where: {
-        id: paymentId,
-        userId,
-      },
-    });
-
-    if (!payment) {
-      throw new NotFoundException('Payment not found');
+  async handleIpnCallback(secretKey: string | undefined, body: IpnCallbackBodyType): Promise<IpnCallbackResType> {
+    // 1. Verify secret key từ header
+    if (!secretKey || secretKey !== envConfig.SEPAY_SECRET_KEY) {
+      throw new UnauthorizedException('Invalid secret key');
     }
 
-    const transferContent = this.generateTransferContent(payment.id);
+    console.log('📥 IPN Received:', JSON.stringify(body, null, 2));
 
-    return {
-      id: payment.id,
-      amount: payment.amount,
-      status: payment.status,
-      gateway: payment.gateway,
-      transferContent,
-      createdAt: payment.createdAt,
-      updatedAt: payment.updatedAt,
-    };
-  }
-
-  async listPayments(userId: number, query: ListPaymentsQueryType): Promise<PaymentListResType> {
-    const { page, limit, status } = query;
-    const skip = (page - 1) * limit;
-
-    const where = {
-      userId,
-      ...(status && { status }),
-    };
-
-    const [payments, total] = await Promise.all([
-      this.prismaService.payment.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prismaService.payment.count({ where }),
-    ]);
-
-    return {
-      data: payments.map((payment) => ({
-        id: payment.id,
-        amount: payment.amount,
-        status: payment.status,
-        gateway: payment.gateway,
-        transferContent: this.generateTransferContent(payment.id),
-        createdAt: payment.createdAt,
-        updatedAt: payment.updatedAt,
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async cancelPayment(userId: number, paymentId: number): Promise<MessageResType> {
-    const payment = await this.prismaService.payment.findFirst({
-      where: {
-        id: paymentId,
-        userId,
-      },
-    });
-
-    if (!payment) {
-      throw new NotFoundException('Payment not found');
-    }
-
-    if (payment.status !== (PaymentStatus.PENDING as string)) {
-      throw new BadRequestException('Only pending payments can be cancelled');
-    }
-
-    await this.prismaService.payment.update({
-      where: { id: paymentId },
-      data: { status: PaymentStatus.CANCELLED },
-    });
-
-    return { message: 'Payment cancelled successfully' };
-  }
-
-  async receiver(body: WebhookPaymentBodyType): Promise<MessageResType> {
-    let amountIn = 0;
-    let amountOut = 0;
-    if (body.transferType === 'in') {
-      amountIn = body.transferAmount;
-    } else if (body.transferType === 'out') {
-      amountOut = body.transferAmount;
-    }
-
-    const paymentId = this.parsePaymentIdFromContent(body.content) || this.parsePaymentIdFromContent(body.code || '');
-
-    await this.prismaService.paymentTransaction.create({
-      data: {
-        paymentId: paymentId || null,
-        gateway: body.gateway,
-        transactionDate: parse(body.transactionDate, 'yyyy-MM-dd HH:mm:ss', new Date()),
-        accountNumber: body.accountNumber,
-        subAccount: body.subAccount,
-        amountIn: amountIn,
-        amountOut: amountOut,
-        accumulated: body.accumulated,
-        code: body.code,
-        transactionContent: body.content,
-        referenceNumber: body.referenceCode,
-        body: body.description,
-      },
-    });
-
-    if (!paymentId) {
-      console.log('Could not parse payment ID from content:', body.content);
-      return { message: 'Transaction recorded (no matching payment found)' };
+    if (body.notification_type !== 'ORDER_PAID') {
+      console.log(`⚠️ Ignored notification_type: ${body.notification_type}`);
+      return { success: true };
     }
 
     const payment = await this.prismaService.payment.findUnique({
-      where: { id: paymentId },
-      include: { user: true },
+      where: { orderCode: body.order.order_invoice_number },
     });
 
     if (!payment) {
-      console.log('Payment not found:', paymentId);
-      return { message: 'Transaction recorded (payment not found)' };
+      console.warn(`❌ Payment not found for orderCode: ${body.order.order_invoice_number}`);
+      return { success: true }; // Return success để SePay không retry
     }
 
-    if (body.transferType !== 'in') {
-      return { message: 'Transaction recorded (not a deposit)' };
+    if (body.order.order_status !== 'CAPTURED') {
+      console.warn(`⚠️ Order status is not CAPTURED: ${body.order.order_status}`);
+      return { success: true };
     }
 
-    if (body.transferAmount < payment.amount) {
-      console.log(`Insufficient amount: received ${body.transferAmount}, expected ${payment.amount}`);
-      return { message: 'Transaction recorded (insufficient amount)' };
+    if (body.transaction.transaction_status !== 'APPROVED') {
+      console.warn(`⚠️ Transaction status is not APPROVED: ${body.transaction.transaction_status}`);
+      return { success: true };
     }
 
-    await this.prismaService.payment.update({
-      where: { id: paymentId },
-      data: { status: PaymentStatus.SUCCESS },
-    });
+    const receivedAmount = parseInt(body.transaction.transaction_amount);
+    if (receivedAmount < payment.amount) {
+      console.warn(`⚠️ Insufficient amount: received ${receivedAmount}, expected ${payment.amount}`);
+      await this.prismaService.payment.update({
+        where: { id: payment.id },
+        data: { status: PaymentStatus.FAILED },
+      });
+      return { success: true };
+    }
 
-    await this.prismaService.wallet.upsert({
-      where: { userId: payment.userId },
-      update: {
-        balance: { increment: body.transferAmount },
-        totalTopUp: { increment: body.transferAmount },
-      },
-      create: {
-        userId: payment.userId,
-        balance: body.transferAmount,
-        totalTopUp: body.transferAmount,
-        totalSpent: 0,
-      },
-    });
+    if (payment.status !== PaymentStatus.SUCCESS) {
+      await this.prismaService.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.SUCCESS,
+          paidAt: new Date(),
+        },
+      });
 
-    await this.prismaService.topUp.create({
-      data: {
-        userId: payment.userId,
-        amount: body.transferAmount,
-        status: PaymentStatus.SUCCESS,
-        gateway: body.gateway,
-        transactionId: body.referenceCode,
-      },
-    });
+      await this.prismaService.wallet.upsert({
+        where: { userId: payment.userId },
+        update: {
+          balance: { increment: receivedAmount },
+          totalTopUp: { increment: receivedAmount },
+        },
+        create: {
+          userId: payment.userId,
+          balance: receivedAmount,
+          totalTopUp: receivedAmount,
+          totalSpent: 0,
+        },
+      });
 
-    return { message: 'Payment completed successfully' };
+      await this.prismaService.topUp.create({
+        data: {
+          userId: payment.userId,
+          amount: receivedAmount,
+          status: PaymentStatus.SUCCESS,
+          gateway: body.transaction.payment_method,
+          transactionId: body.transaction.transaction_id,
+          metadata: JSON.stringify(body),
+        },
+      });
+
+      console.log(`✅ Payment ${payment.orderCode} marked as SUCCESS, wallet updated`);
+    } else {
+      console.log(`✅ Payment ${payment.orderCode} already SUCCESS (idempotent)`);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Helper: Generate HTML form for auto-submit to SePay
+   */
+  private generateAutoSubmitForm(actionUrl: string, formFields: Record<string, any>): string {
+    const hiddenInputs = Object.entries(formFields)
+      .map(([key, value]) => `<input type="hidden" name="${key}" value="${value}" />`)
+      .join('\n    ');
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Đang chuyển hướng đến cổng thanh toán...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .loading {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        p {
+            color: #333;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Đang chuyển hướng đến cổng thanh toán SePay...</p>
+        <p style="font-size: 14px; color: #666;">Vui lòng chờ trong giây lát</p>
+    </div>
+    <form id="sepay-checkout-form" method="POST" action="${actionUrl}">
+    ${hiddenInputs}
+    </form>
+    <script>
+        window.onload = function() {
+            document.getElementById('sepay-checkout-form').submit();
+        };
+    </script>
+</body>
+</html>
+`;
   }
 }

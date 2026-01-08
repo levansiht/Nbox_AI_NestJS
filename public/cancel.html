@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thanh toán đã hủy</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      }
+      .container {
+        text-align: center;
+        background: white;
+        padding: 60px 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+      }
+      .icon {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 30px;
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.5s ease-out;
+      }
+      .icon svg {
+        width: 60px;
+        height: 60px;
+        stroke: white;
+        stroke-width: 3;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      h1 {
+        color: #2d3748;
+        font-size: 32px;
+        margin-bottom: 15px;
+        font-weight: 700;
+      }
+      p {
+        color: #718096;
+        font-size: 16px;
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+      .cancel-info {
+        background: #fffaf0;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 30px 0;
+        text-align: left;
+        border-left: 4px solid #fcb69f;
+      }
+      .cancel-info-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #feebc8;
+      }
+      .cancel-info-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      .cancel-info-label {
+        color: #718096;
+        font-weight: 500;
+      }
+      .cancel-info-value {
+        color: #2d3748;
+        font-weight: 600;
+      }
+      .btn-group {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 15px 30px;
+        color: white;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 16px;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .btn-secondary {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: #2d3748;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">
+        <svg viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="20" />
+          <line x1="26" y1="18" x2="26" y2="28" />
+          <circle cx="26" cy="34" r="1.5" fill="white" />
+        </svg>
+      </div>
+      <h1>Thanh toán đã hủy</h1>
+      <p>Bạn đã hủy giao dịch thanh toán.</p>
+      <p>Không có khoản tiền nào được trừ từ tài khoản của bạn.</p>
+
+      <div class="cancel-info" id="cancelInfo">
+        <div class="cancel-info-item">
+          <span class="cancel-info-label">Mã đơn hàng:</span>
+          <span class="cancel-info-value" id="orderCode">-</span>
+        </div>
+        <div class="cancel-info-item">
+          <span class="cancel-info-label">Trạng thái:</span>
+          <span class="cancel-info-value" style="color: #fcb69f">Đã hủy</span>
+        </div>
+        <div class="cancel-info-item">
+          <span class="cancel-info-label">Thời gian:</span>
+          <span class="cancel-info-value" id="cancelTime">-</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <a href="/" class="btn btn-primary">Về trang chủ</a>
+        <a href="/payment" class="btn btn-secondary">Thanh toán lại</a>
+      </div>
+    </div>
+
+    <script>
+      // Parse URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderCode = urlParams.get('order_invoice_number') || urlParams.get('orderCode');
+
+      if (orderCode) {
+        document.getElementById('orderCode').textContent = orderCode;
+      }
+
+      // Set cancel time
+      const now = new Date();
+      const formattedTime = now.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      document.getElementById('cancelTime').textContent = formattedTime;
+    </script>
+  </body>
+</html>

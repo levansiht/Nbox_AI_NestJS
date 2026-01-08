@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thanh toán thất bại</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+      .container {
+        text-align: center;
+        background: white;
+        padding: 60px 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+      }
+      .icon {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 30px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: shake 0.5s ease-out;
+      }
+      .icon svg {
+        width: 60px;
+        height: 60px;
+        stroke: white;
+        stroke-width: 3;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-10px);
+        }
+        75% {
+          transform: translateX(10px);
+        }
+      }
+      h1 {
+        color: #2d3748;
+        font-size: 32px;
+        margin-bottom: 15px;
+        font-weight: 700;
+      }
+      p {
+        color: #718096;
+        font-size: 16px;
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+      .error-info {
+        background: #fff5f5;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 30px 0;
+        text-align: left;
+        border-left: 4px solid #f5576c;
+      }
+      .error-info-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #fed7d7;
+      }
+      .error-info-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      .error-info-label {
+        color: #718096;
+        font-weight: 500;
+      }
+      .error-info-value {
+        color: #2d3748;
+        font-weight: 600;
+      }
+      .btn-group {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 15px 30px;
+        color: white;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 16px;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .btn-secondary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">
+        <svg viewBox="0 0 52 52">
+          <line x1="16" y1="16" x2="36" y2="36" />
+          <line x1="36" y1="16" x2="16" y2="36" />
+        </svg>
+      </div>
+      <h1>Thanh toán thất bại!</h1>
+      <p>Rất tiếc, giao dịch của bạn không thể hoàn tất.</p>
+      <p>Vui lòng thử lại hoặc liên hệ hỗ trợ nếu vấn đề tiếp tục xảy ra.</p>
+
+      <div class="error-info" id="errorInfo">
+        <div class="error-info-item">
+          <span class="error-info-label">Mã đơn hàng:</span>
+          <span class="error-info-value" id="orderCode">-</span>
+        </div>
+        <div class="error-info-item">
+          <span class="error-info-label">Trạng thái:</span>
+          <span class="error-info-value" style="color: #f5576c">Thất bại</span>
+        </div>
+        <div class="error-info-item">
+          <span class="error-info-label">Lý do:</span>
+          <span class="error-info-value" id="errorReason">Giao dịch bị từ chối</span>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <a href="/" class="btn btn-primary">Về trang chủ</a>
+        <a href="/payment" class="btn btn-secondary">Thử lại</a>
+      </div>
+    </div>
+
+    <script>
+      // Parse URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderCode = urlParams.get('order_invoice_number') || urlParams.get('orderCode');
+      const errorMsg = urlParams.get('error') || urlParams.get('message');
+
+      if (orderCode) {
+        document.getElementById('orderCode').textContent = orderCode;
+      }
+      if (errorMsg) {
+        document.getElementById('errorReason').textContent = errorMsg;
+      }
+    </script>
+  </body>
+</html>

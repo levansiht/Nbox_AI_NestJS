@@ -211,42 +211,63 @@ model ServicePricing {
 }
 
 ////////////////////
-/// PAYMENT (Sepay)
+/// PAYMENT (SePay)
 ////////////////////
 
 model Payment {
-  id     Int  @id @default(autoincrement())
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  amount  Int
-  status  PaymentStatus
-  gateway String
-
-  transactions PaymentTransaction[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt 
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // SePay order fields
+  orderCode String        @unique @db.VarChar(255) // order_invoice_number từ SePay
+  amount    Int           // Số tiền VND
+  status    PaymentStatus @default(PENDING)
+  
+  description String?     @db.Text
+  
+  // Tracking times
+  paidAt    DateTime?     // Thời điểm thanh toán thành công
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  
+  // Relations
+  ipnNotifications IpnNotification[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([orderCode])
 }
 
-model PaymentTransaction {
-  id                  Int       @id @default(autoincrement())
-  paymentId           Int?
-  payment             Payment?  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  gateway             String    @db.VarChar(100)
-  transactionDate     DateTime  @default(now())
-  accountNumber       String?   @db.VarChar(100)
-  subAccount          String?   @db.VarChar(250)
-  amountIn            Decimal   @default(0.00) @db.Decimal(20, 2)
-  amountOut           Decimal   @default(0.00) @db.Decimal(20, 2)
-  accumulated         Decimal   @default(0.00) @db.Decimal(20, 2)
-  code                String?   @db.VarChar(250)
-  transactionContent  String?   @db.Text
-  referenceNumber     String?   @db.VarChar(255)
-  body                String?   @db.Text
-  createdAt           DateTime  @default(now())
-
+model IpnNotification {
+  id               Int      @id @default(autoincrement())
+  paymentId        Int?
+  payment          Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  
+  // SePay IPN fields
+  notificationType String   @db.VarChar(100) // ORDER_PAID, TRANSACTION_VOID
+  timestamp        BigInt   // Unix timestamp từ SePay
+  
+  // Order info
+  orderId          String   @db.VarChar(255) // SePay internal order ID
+  orderStatus      String   @db.VarChar(50)  // CAPTURED, etc.
+  orderAmount      String   @db.VarChar(50)
+  orderInvoiceNumber String @db.VarChar(255) // orderCode của chúng ta
+  
+  // Transaction info
+  transactionId    String?  @db.VarChar(255)
+  paymentMethod    String?  @db.VarChar(100) // BANK_TRANSFER, CARD
+  transactionStatus String? @db.VarChar(50)
+  transactionAmount String? @db.VarChar(50)
+  transactionDate  String?  @db.VarChar(100)
+  
+  // Raw data for debugging
+  rawData          String   @db.Text // Full JSON from SePay
+  
+  createdAt        DateTime @default(now())
+  
   @@index([paymentId])
+  @@index([orderInvoiceNumber])
 }
 
 model Device {

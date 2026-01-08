@@ -41,12 +41,15 @@ const configSchema = z.object({
   GOOGLE_CLIENT_REDIRECT_URI: z.string(),
   APP_NAME: z.string().default('NBox AI'),
   GEMINI_API_KEY: z.string(),
-  PAYMENT_API_KEY: z.string(),
-  // Payment bank config
-  BANK_ID: z.string().default('MB'),
-  BANK_ACCOUNT_NO: z.string().default(''),
-  BANK_ACCOUNT_NAME: z.string().default(''),
-  PAYMENT_DESCRIPTION_PREFIX: z.string().default('NBOX'),
+
+  // SePay Payment Gateway
+  SEPAY_MERCHANT_ID: z.string(),
+  SEPAY_SECRET_KEY: z.string(),
+  SEPAY_ENVIRONMENT: z.enum(['sandbox', 'production']).default('sandbox'),
+  SEPAY_SUCCESS_URL: z.string(),
+  SEPAY_ERROR_URL: z.string(),
+  SEPAY_CANCEL_URL: z.string(),
+
 });
 
 const configServer = configSchema.safeParse(process.env);
