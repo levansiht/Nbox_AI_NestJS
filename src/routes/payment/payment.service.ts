@@ -10,7 +10,7 @@ export class PaymentService {
     return this.paymentRepo.createPayment(userId, body);
   }
 
-  handleIpnCallback(secretKey: string | undefined, body: IpnCallbackBodyType): Promise<IpnCallbackResType> {
-    return this.paymentRepo.handleIpnCallback(secretKey, body);
+  handleIpnCallback(body: IpnCallbackBodyType): Promise<IpnCallbackResType> {
+    return this.paymentRepo.handleIpnCallback(body);
   }
 }

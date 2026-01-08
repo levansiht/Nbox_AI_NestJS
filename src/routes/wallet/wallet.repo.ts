@@ -4,6 +4,8 @@ import {
   WalletBalanceResType,
   CreditLogListQueryType,
   CreditLogListResType,
+  TopUpListQueryType,
+  TopUpListResType,
   EstimateCostBodyType,
   EstimateCostResType,
 } from './wallet.model';
@@ -74,6 +76,42 @@ export class WalletRepo {
       estimatedCost,
       currentBalance,
       canAfford: currentBalance >= estimatedCost,
+    };
+  }
+
+  async getTopUpHistory(userId: number, query: TopUpListQueryType): Promise<TopUpListResType> {
+    // Ensure wallet exists
+    let wallet = await this.prismaService.wallet.findUnique({
+      where: { userId },
+    });
+
+    if (!wallet) {
+      wallet = await this.prismaService.wallet.create({
+        data: { userId },
+      });
+    }
+
+    const { page, limit } = query;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prismaService.topUp.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prismaService.topUp.count({ where: { userId } }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
     };
   }
 }

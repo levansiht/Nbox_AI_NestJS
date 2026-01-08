@@ -5,6 +5,8 @@ import {
   WalletBalanceResDTO,
   CreditLogListQueryDTO,
   CreditLogListResDTO,
+  TopUpListQueryDTO,
+  TopUpListResDTO,
   EstimateCostBodyDTO,
   EstimateCostResDTO,
 } from './wallet.dto';
@@ -29,6 +31,13 @@ export class WalletController {
   @ZodSerializerDto(CreditLogListResDTO)
   getCreditHistory(@ActiveUser() user: AcessTokenPayload, @Query() query: CreditLogListQueryDTO) {
     return this.walletService.getCreditHistory(user.userId, query);
+  }
+
+  @Get('/topup-history')
+  @Auth([AuthType.Bearer])
+  @ZodSerializerDto(TopUpListResDTO)
+  getTopUpHistory(@ActiveUser() user: AcessTokenPayload, @Query() query: TopUpListQueryDTO) {
+    return this.walletService.getTopUpHistory(user.userId, query);
   }
 
   @Post('/estimate-cost')

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res, Headers } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { PaymentService } from './payment.service';
 import { CreatePaymentBodyDTO, IpnCallbackBodyDTO } from './payment.dto';
@@ -28,7 +28,10 @@ export class PaymentController {
    */
   @Post('/ipn')
   @IsPublic()
-  async handleIpnCallback(@Headers('secret-key') secretKey: string, @Body() body: IpnCallbackBodyDTO) {
-    return this.paymentService.handleIpnCallback(secretKey, body);
+  async handleIpnCallback(@Body() body: IpnCallbackBodyDTO) {
+
+    const result = await this.paymentService.handleIpnCallback(body);
+
+    return result;
   }
 }

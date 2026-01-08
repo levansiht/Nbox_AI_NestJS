@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { WalletRepo } from './wallet.repo';
-import { CreditLogListQueryType, EstimateCostBodyType } from './wallet.model';
+import { CreditLogListQueryType, TopUpListQueryType, EstimateCostBodyType } from './wallet.model';
 
 @Injectable()
 export class WalletService {
@@ -12,6 +12,10 @@ export class WalletService {
 
   getCreditHistory(userId: number, query: CreditLogListQueryType) {
     return this.walletRepo.getCreditHistory(userId, query);
+  }
+
+  getTopUpHistory(userId: number, query: TopUpListQueryType) {
+    return this.walletRepo.getTopUpHistory(userId, query);
   }
 
   estimateCost(userId: number, body: EstimateCostBodyType) {

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/services/prisma.service';
 import { CreatePaymentBodyType, CreatePaymentResType, IpnCallbackBodyType, IpnCallbackResType } from './payment.model';
 import { SePayPgClient } from 'sepay-pg-node';
@@ -45,9 +45,9 @@ export class PaymentRepo {
       order_amount: payment.amount,
       currency: 'VND',
       order_description: body.description || 'Payment for order ' + payment.orderCode,
-      success_url: 'http://localhost:3000/success.html',
-      error_url: 'http://localhost:3000/error.html',
-      cancel_url: 'http://localhost:3000/cancel.html',
+      success_url: envConfig.SEPAY_SUCCESS_URL,
+      error_url: envConfig.SEPAY_ERROR_URL,
+      cancel_url: envConfig.SEPAY_CANCEL_URL,
     });
 
     const htmlForm = this.generateAutoSubmitForm(checkoutURL, checkoutFormFields);
@@ -55,13 +55,26 @@ export class PaymentRepo {
     return htmlForm;
   }
 
-  async handleIpnCallback(secretKey: string | undefined, body: IpnCallbackBodyType): Promise<IpnCallbackResType> {
-    // 1. Verify secret key từ header
-    if (!secretKey || secretKey !== envConfig.SEPAY_SECRET_KEY) {
-      throw new UnauthorizedException('Invalid secret key');
-    }
+  async handleIpnCallback(body: IpnCallbackBodyType): Promise<IpnCallbackResType> {
 
-    console.log('📥 IPN Received:', JSON.stringify(body, null, 2));
+    // Store IPN notification for audit trail
+    const ipnNotification = await this.prismaService.ipnNotification.create({
+      data: {
+        notificationType: body.notification_type,
+        timestamp: BigInt(body.timestamp),
+        orderId: body.order.id,
+        orderStatus: body.order.order_status,
+        orderAmount: body.order.order_amount,
+        orderInvoiceNumber: body.order.order_invoice_number,
+        transactionId: body.transaction?.id || null,
+        paymentMethod: body.transaction?.payment_method || null,
+        transactionStatus: body.transaction?.transaction_status || null,
+        transactionAmount: body.transaction?.transaction_amount || null,
+        transactionDate: body.transaction?.transaction_date || null,
+        rawData: JSON.stringify(body),
+      },
+    });
+
 
     if (body.notification_type !== 'ORDER_PAID') {
       console.log(`⚠️ Ignored notification_type: ${body.notification_type}`);
@@ -73,9 +86,14 @@ export class PaymentRepo {
     });
 
     if (!payment) {
-      console.warn(`❌ Payment not found for orderCode: ${body.order.order_invoice_number}`);
       return { success: true }; // Return success để SePay không retry
     }
+
+    // Link IPN notification to payment
+    await this.prismaService.ipnNotification.update({
+      where: { id: ipnNotification.id },
+      data: { paymentId: payment.id },
+    });
 
     if (body.order.order_status !== 'CAPTURED') {
       console.warn(`⚠️ Order status is not CAPTURED: ${body.order.order_status}`);
@@ -131,11 +149,7 @@ export class PaymentRepo {
         },
       });
 
-      console.log(`✅ Payment ${payment.orderCode} marked as SUCCESS, wallet updated`);
-    } else {
-      console.log(`✅ Payment ${payment.orderCode} already SUCCESS (idempotent)`);
     }
-
     return { success: true };
   }
 
