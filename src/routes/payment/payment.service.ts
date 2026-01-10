@@ -13,4 +13,12 @@ export class PaymentService {
   handleIpnCallback(body: IpnCallbackBodyType): Promise<IpnCallbackResType> {
     return this.paymentRepo.handleIpnCallback(body);
   }
+
+  getLatestPaymentByStatus(status: 'SUCCESS' | 'FAILED' | 'CANCELLED') {
+    return this.paymentRepo.getLatestPaymentByStatus(status);
+  }
+
+  createSamplePayment(data: { orderCode: string; amount: number; status: string; description?: string }) {
+    return this.paymentRepo.createSamplePayment(data);
+  }
 }

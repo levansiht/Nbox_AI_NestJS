@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thanh toán thất bại</title>
+    <title>Thanh toán không thành công - NBOX</title>
     <style>
       * {
         margin: 0;
@@ -11,171 +11,315 @@
         box-sizing: border-box;
       }
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        background: #fafafa;
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 20px;
+        color: #333;
       }
       .container {
-        text-align: center;
         background: white;
-        padding: 60px 40px;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        max-width: 500px;
-        width: 90%;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        max-width: 480px;
+        width: 100%;
+        padding: 40px 32px;
+        text-align: center;
       }
-      .icon {
-        width: 100px;
-        height: 100px;
-        margin: 0 auto 30px;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      .status-icon {
+        width: 64px;
+        height: 64px;
+        background: #ef4444;
         border-radius: 50%;
         display: flex;
-        justify-content: center;
         align-items: center;
-        animation: shake 0.5s ease-out;
+        justify-content: center;
+        margin: 0 auto 24px;
+        animation: fadeIn 0.6s ease-out;
       }
-      .icon svg {
-        width: 60px;
-        height: 60px;
+      .status-icon svg {
+        width: 32px;
+        height: 32px;
         stroke: white;
-        stroke-width: 3;
+        stroke-width: 2.5;
         fill: none;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
-      @keyframes shake {
-        0%,
-        100% {
-          transform: translateX(0);
-        }
-        25% {
-          transform: translateX(-10px);
-        }
-        75% {
-          transform: translateX(10px);
-        }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
       }
       h1 {
-        color: #2d3748;
-        font-size: 32px;
-        margin-bottom: 15px;
-        font-weight: 700;
+        font-size: 24px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 8px;
       }
-      p {
-        color: #718096;
-        font-size: 16px;
-        margin-bottom: 10px;
-        line-height: 1.6;
+      .subtitle {
+        color: #6b7280;
+        font-size: 15px;
+        margin-bottom: 32px;
+        line-height: 1.5;
       }
-      .error-info {
-        background: #fff5f5;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 30px 0;
+      .details {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
         text-align: left;
-        border-left: 4px solid #f5576c;
       }
-      .error-info-item {
+      .detail-item {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #fed7d7;
+        align-items: center;
+        padding: 8px 0;
       }
-      .error-info-item:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
+      .detail-item:not(:last-child) {
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 8px;
+        padding-bottom: 16px;
       }
-      .error-info-label {
-        color: #718096;
+      .detail-label {
+        font-size: 14px;
+        color: #6b7280;
         font-weight: 500;
       }
-      .error-info-value {
-        color: #2d3748;
+      .detail-value {
+        font-size: 14px;
+        color: #111827;
         font-weight: 600;
       }
-      .btn-group {
+      .amount-value {
+        font-size: 16px;
+        color: #ef4444;
+        font-weight: 700;
+      }
+      .status-failed {
+        background: #fef2f2;
+        color: #dc2626;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .error-info {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 24px;
+        text-align: left;
+      }
+      .error-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #dc2626;
+        margin-bottom: 4px;
+      }
+      .error-desc {
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+      .support-info {
+        background: #f0f9ff;
+        border: 1px solid #e0f2fe;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 32px;
+        text-align: left;
+      }
+      .support-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0369a1;
+        margin-bottom: 4px;
+      }
+      .support-desc {
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+      .actions {
         display: flex;
-        gap: 15px;
-        justify-content: center;
-        margin-top: 20px;
+        gap: 12px;
+        margin-bottom: 24px;
       }
       .btn {
-        display: inline-block;
-        padding: 15px 30px;
-        color: white;
+        flex: 1;
+        padding: 12px 24px;
+        border-radius: 8px;
         text-decoration: none;
-        border-radius: 50px;
         font-weight: 600;
-        font-size: 16px;
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
+        font-size: 14px;
+        text-align: center;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
       }
       .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #111827;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #374151;
+        transform: translateY(-1px);
       }
       .btn-secondary {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
       }
-      .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      .btn-secondary:hover {
+        background: #e5e7eb;
+        transform: translateY(-1px);
       }
-      .btn:active {
-        transform: translateY(0);
+      @media (max-width: 480px) {
+        .container {
+          padding: 32px 24px;
+        }
+        .actions {
+          flex-direction: column;
+        }
+        .btn {
+          padding: 14px 24px;
+        }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="icon">
-        <svg viewBox="0 0 52 52">
-          <line x1="16" y1="16" x2="36" y2="36" />
-          <line x1="36" y1="16" x2="16" y2="36" />
+      <!-- Error Icon -->
+      <div class="status-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6 6 18M6 6l12 12" />
         </svg>
       </div>
-      <h1>Thanh toán thất bại!</h1>
-      <p>Rất tiếc, giao dịch của bạn không thể hoàn tất.</p>
-      <p>Vui lòng thử lại hoặc liên hệ hỗ trợ nếu vấn đề tiếp tục xảy ra.</p>
 
-      <div class="error-info" id="errorInfo">
-        <div class="error-info-item">
-          <span class="error-info-label">Mã đơn hàng:</span>
-          <span class="error-info-value" id="orderCode">-</span>
+      <!-- Header -->
+      <h1>Thanh toán không thành công</h1>
+      <p class="subtitle">Rất tiếc, giao dịch của bạn không thể hoàn tất. Không có khoản tiền nào bị trừ từ tài khoản của bạn.</p>
+
+      <!-- Transaction Details -->
+      <div class="details">
+        <div class="detail-item">
+          <span class="detail-label">Mã đơn hàng</span>
+          <span class="detail-value" id="orderCode">Đang tải...</span>
         </div>
-        <div class="error-info-item">
-          <span class="error-info-label">Trạng thái:</span>
-          <span class="error-info-value" style="color: #f5576c">Thất bại</span>
+        <div class="detail-item">
+          <span class="detail-label">Số tiền</span>
+          <span class="detail-value amount-value" id="amount">Đang tải...</span>
         </div>
-        <div class="error-info-item">
-          <span class="error-info-label">Lý do:</span>
-          <span class="error-info-value" id="errorReason">Giao dịch bị từ chối</span>
+        <div class="detail-item">
+          <span class="detail-label">Thời gian</span>
+          <span class="detail-value" id="timestamp">-</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Trạng thái</span>
+          <span class="status-failed">Thất bại</span>
         </div>
       </div>
 
-      <div class="btn-group">
-        <a href="/" class="btn btn-primary">Về trang chủ</a>
-        <a href="/payment" class="btn btn-secondary">Thử lại</a>
+      <!-- Error Info -->
+      <div class="error-info">
+        <div class="error-title">Lý do lỗi</div>
+        <div class="error-desc" id="errorReason">
+          Giao dịch bị từ chối. Vui lòng kiểm tra thông tin và thử lại.
+        </div>
+      </div>
+
+      <!-- Support Info -->
+      <div class="support-info">
+        <div class="support-title">Cần hỗ trợ?</div>
+        <div class="support-desc">
+          Nếu vấn đề tiếp tục xảy ra, vui lòng liên hệ với chúng tôi qua email support@nbox-ai.tech.
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <a href="#" id="backToApp" class="btn btn-primary">Quay lại ứng dụng</a>
+        <a href="#" id="tryAgain" class="btn btn-secondary">Thử lại</a>
       </div>
     </div>
 
     <script>
-      // Parse URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderCode = urlParams.get('order_invoice_number') || urlParams.get('orderCode');
-      const errorMsg = urlParams.get('error') || urlParams.get('message');
+      // Frontend URL - redirect to frontend application
+      const FRONTEND_URL = window.location.origin.includes('localhost')
+        ? 'http://localhost:3002'
+        : 'https://nbox-ai.tech';
 
-      if (orderCode) {
-        document.getElementById('orderCode').textContent = orderCode;
+      // Error message translations - ported from React component
+      const errorTranslations = {
+        'insufficient_funds': 'Số dư tài khoản không đủ để thực hiện giao dịch',
+        'payment_expired': 'Giao dịch đã hết hạn',
+        'payment_cancelled': 'Giao dịch đã bị hủy',
+        'invalid_amount': 'Số tiền giao dịch không hợp lệ',
+        'bank_error': 'Lỗi từ phía ngân hàng',
+        'network_error': 'Lỗi kết nối mạng',
+        'system_error': 'Lỗi hệ thống',
+        'payment_declined': 'Giao dịch bị từ chối',
+        'card_declined': 'Thẻ bị từ chối',
+        'card_expired': 'Thẻ đã hết hạn',
+        'invalid_card': 'Thông tin thẻ không hợp lệ',
+        'limit_exceeded': 'Vượt quá hạn mức giao dịch',
+        'authentication_failed': 'Xác thực không thành công',
+        'timeout': 'Giao dịch quá thời gian chờ'
+      };
+
+      // Enhanced parameter parsing - support multiple formats
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Set current timestamp immediately
+      document.getElementById('timestamp').textContent = new Date().toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      // Set up redirect URLs
+      document.getElementById('backToApp').href = FRONTEND_URL;
+      document.getElementById('tryAgain').href = FRONTEND_URL + '#topup';
+
+      // Fetch latest failed payment data from database
+      async function fetchLatestPayment() {
+        try {
+          const response = await fetch('/payment/latest-payment?status=FAILED');
+          const paymentData = await response.json();
+
+          if (paymentData.success && paymentData.data) {
+            const payment = paymentData.data;
+
+            // Update payment information
+            document.getElementById('orderCode').textContent = payment.orderCode;
+            document.getElementById('amount').textContent = payment.formattedAmount;
+
+            console.log('Latest failed payment data:', payment);
+          } else {
+            console.log('No recent failed payment found or error:', paymentData.message);
+          }
+        } catch (error) {
+          console.warn('Failed to fetch failed payment data:', error);
+        }
       }
+
+      // Fetch data after page load
+      fetchLatestPayment();
+
+      // Handle URL error parameters for custom error messages
+      const errorMsg = urlParams.get('error') ||
+                      urlParams.get('message') ||
+                      urlParams.get('error_message');
       if (errorMsg) {
-        document.getElementById('errorReason').textContent = errorMsg;
+        const translatedError = errorTranslations[errorMsg] || errorMsg;
+        document.getElementById('errorReason').textContent = translatedError;
       }
     </script>
   </body>

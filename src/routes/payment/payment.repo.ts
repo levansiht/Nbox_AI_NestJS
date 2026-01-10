@@ -221,4 +221,26 @@ export class PaymentRepo {
 </html>
 `;
   }
+
+  /**
+   * Get latest payment by status for result pages
+   */
+  async getLatestPaymentByStatus(status: 'SUCCESS' | 'FAILED' | 'CANCELLED') {
+    return await this.prismaService.payment.findFirst({
+      where: {
+        status: status
+      },
+      include: {
+        ipnNotifications: {
+          orderBy: {
+            id: 'desc'
+          },
+          take: 1
+        }
+      },
+      orderBy: {
+        updatedAt: 'desc' // Get most recent payment
+      }
+    });
+  }
 }

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thanh toán thành công</title>
+    <title>Thanh toán thành công - NBOX</title>
     <style>
       * {
         margin: 0;
@@ -11,160 +11,307 @@
         box-sizing: border-box;
       }
       body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        background: #fafafa;
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        color: #333;
       }
       .container {
-        text-align: center;
         background: white;
-        padding: 60px 40px;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        max-width: 500px;
-        width: 90%;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        max-width: 480px;
+        width: 100%;
+        padding: 40px 32px;
+        text-align: center;
       }
-      .icon {
-        width: 100px;
-        height: 100px;
-        margin: 0 auto 30px;
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      .status-icon {
+        width: 64px;
+        height: 64px;
+        background: #22c55e;
         border-radius: 50%;
         display: flex;
-        justify-content: center;
         align-items: center;
-        animation: scaleIn 0.5s ease-out;
+        justify-content: center;
+        margin: 0 auto 24px;
+        animation: fadeIn 0.6s ease-out;
       }
-      .icon svg {
-        width: 60px;
-        height: 60px;
+      .status-icon svg {
+        width: 32px;
+        height: 32px;
         stroke: white;
-        stroke-width: 3;
+        stroke-width: 2.5;
         fill: none;
         stroke-linecap: round;
         stroke-linejoin: round;
       }
-      @keyframes scaleIn {
-        0% {
-          transform: scale(0);
-        }
-        50% {
-          transform: scale(1.1);
-        }
-        100% {
-          transform: scale(1);
-        }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
       }
       h1 {
-        color: #2d3748;
-        font-size: 32px;
-        margin-bottom: 15px;
-        font-weight: 700;
+        font-size: 24px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 8px;
       }
-      p {
-        color: #718096;
-        font-size: 16px;
-        margin-bottom: 10px;
-        line-height: 1.6;
+      .subtitle {
+        color: #6b7280;
+        font-size: 15px;
+        margin-bottom: 32px;
+        line-height: 1.5;
       }
-      .order-info {
-        background: #f7fafc;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 30px 0;
+      .details {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
         text-align: left;
       }
-      .order-info-item {
+      .detail-item {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 12px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #e2e8f0;
+        align-items: center;
+        padding: 8px 0;
       }
-      .order-info-item:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
+      .detail-item:not(:last-child) {
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 8px;
+        padding-bottom: 16px;
       }
-      .order-info-label {
-        color: #718096;
+      .detail-label {
+        font-size: 14px;
+        color: #6b7280;
         font-weight: 500;
       }
-      .order-info-value {
-        color: #2d3748;
+      .detail-value {
+        font-size: 14px;
+        color: #111827;
         font-weight: 600;
+      }
+      .amount-value {
+        font-size: 16px;
+        color: #22c55e;
+        font-weight: 700;
+      }
+      .status-success {
+        background: #dcfce7;
+        color: #166534;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .balance-info {
+        background: #f0f9ff;
+        border: 1px solid #e0f2fe;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 32px;
+        text-align: left;
+      }
+      .balance-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0369a1;
+        margin-bottom: 4px;
+      }
+      .balance-desc {
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
       }
       .btn {
-        display: inline-block;
-        padding: 15px 40px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        flex: 1;
+        padding: 12px 24px;
+        border-radius: 8px;
         text-decoration: none;
-        border-radius: 50px;
         font-weight: 600;
-        font-size: 16px;
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
-        margin-top: 20px;
+        font-size: 14px;
+        text-align: center;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
       }
-      .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+      .btn-primary {
+        background: #111827;
+        color: white;
       }
-      .btn:active {
-        transform: translateY(0);
+      .btn-primary:hover {
+        background: #374151;
+        transform: translateY(-1px);
+      }
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+      }
+      .btn-secondary:hover {
+        background: #e5e7eb;
+        transform: translateY(-1px);
+      }
+      .redirect-notice {
+        background: #fefce8;
+        border: 1px solid #fde047;
+        border-radius: 6px;
+        padding: 12px;
+        font-size: 13px;
+        color: #713f12;
+        line-height: 1.4;
+      }
+      .countdown {
+        font-weight: 700;
+        color: #ca8a04;
+      }
+      @media (max-width: 480px) {
+        .container {
+          padding: 32px 24px;
+        }
+        .actions {
+          flex-direction: column;
+        }
+        .btn {
+          padding: 14px 24px;
+        }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="icon">
-        <svg viewBox="0 0 52 52">
-          <path d="M14 27l9 9 18-18" />
+      <!-- Success Icon -->
+      <div class="status-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 12l2 2 4-4" />
         </svg>
       </div>
-      <h1>Thanh toán thành công!</h1>
-      <p>Giao dịch của bạn đã được xử lý thành công.</p>
-      <p>Số dư tài khoản đã được cập nhật.</p>
 
-      <div class="order-info" id="orderInfo">
-        <div class="order-info-item">
-          <span class="order-info-label">Mã đơn hàng:</span>
-          <span class="order-info-value" id="orderCode">-</span>
+      <!-- Header -->
+      <h1>Thanh toán thành công</h1>
+      <p class="subtitle">Giao dịch đã được xử lý thành công. Cảm ơn bạn đã sử dụng NBOX!</p>
+
+      <!-- Transaction Details -->
+      <div class="details">
+        <div class="detail-item">
+          <span class="detail-label">Mã đơn hàng</span>
+          <span class="detail-value" id="orderCode">Đang tải...</span>
         </div>
-        <div class="order-info-item">
-          <span class="order-info-label">Số tiền:</span>
-          <span class="order-info-value" id="amount">-</span>
+        <div class="detail-item">
+          <span class="detail-label">Số tiền</span>
+          <span class="detail-value amount-value" id="amount">Đang tải...</span>
         </div>
-        <div class="order-info-item">
-          <span class="order-info-label">Trạng thái:</span>
-          <span class="order-info-value" style="color: #38ef7d">Thành công</span>
+        <div class="detail-item">
+          <span class="detail-label">Thời gian</span>
+          <span class="detail-value" id="timestamp">-</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Trạng thái</span>
+          <span class="status-success">Thành công</span>
         </div>
       </div>
 
-      <a href="/" class="btn">Quay về trang chủ</a>
+      <!-- Balance Info -->
+      <div class="balance-info">
+        <div class="balance-title">Số dư đã được cập nhật</div>
+        <div class="balance-desc" id="balanceDesc">
+          Credits đã được thêm vào tài khoản và có thể sử dụng ngay.
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <a href="#" id="backToApp" class="btn btn-primary">Quay lại ứng dụng</a>
+        <a href="#" id="goHome" class="btn btn-secondary">Trang chủ</a>
+      </div>
+
+      <!-- Auto-redirect Notice -->
+      <div class="redirect-notice">
+        Tự động chuyển về ứng dụng sau <span class="countdown" id="countdown">5</span> giây
+      </div>
     </div>
 
     <script>
-      // Parse URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderCode = urlParams.get('order_invoice_number') || urlParams.get('orderCode');
-      const amount = urlParams.get('order_amount') || urlParams.get('amount');
+      // Frontend URL - redirect to frontend application
+      const FRONTEND_URL = window.location.origin.includes('localhost')
+        ? 'http://localhost:3002'
+        : 'https://nbox-ai.tech';
 
-      if (orderCode) {
-        document.getElementById('orderCode').textContent = orderCode;
+      // Enhanced parameter parsing - support multiple formats
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Set current timestamp immediately
+      document.getElementById('timestamp').textContent = new Date().toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      // Set up redirect URLs
+      document.getElementById('backToApp').href = FRONTEND_URL;
+      document.getElementById('goHome').href = FRONTEND_URL;
+
+      // Fetch latest successful payment data from database
+      async function fetchLatestPayment() {
+        try {
+          const response = await fetch('/payment/latest-payment?status=SUCCESS');
+          const paymentData = await response.json();
+
+          if (paymentData.success && paymentData.data) {
+            const payment = paymentData.data;
+
+            // Update payment information
+            document.getElementById('orderCode').textContent = payment.orderCode;
+            document.getElementById('amount').textContent = payment.formattedAmount;
+
+            console.log('Latest successful payment data:', payment);
+          } else {
+            console.log('No recent successful payment found or error:', paymentData.message);
+          }
+        } catch (error) {
+          console.warn('Failed to fetch successful payment data:', error);
+        }
       }
-      if (amount) {
-        const formattedAmount = new Intl.NumberFormat('vi-VN', {
-          style: 'currency',
-          currency: 'VND',
-        }).format(amount);
-        document.getElementById('orderAmount').textContent = formattedAmount;
-      }
+
+      // Fetch data after page load
+      fetchLatestPayment();
+
+      // Auto-redirect countdown
+      let countdown = 5;
+      const countdownEl = document.getElementById('countdown');
+
+      const updateCountdown = () => {
+        countdownEl.textContent = countdown;
+        countdown--;
+
+        if (countdown < 0) {
+          clearInterval(timer);
+          window.location.href = FRONTEND_URL;
+        }
+      };
+
+      const timer = setInterval(updateCountdown, 1000);
+
+      // Cancel auto-redirect on interaction
+      let autoRedirectCancelled = false;
+      document.addEventListener('click', (e) => {
+        if (!autoRedirectCancelled && !e.target.matches('.btn')) {
+          autoRedirectCancelled = true;
+          clearInterval(timer);
+          document.querySelector('.redirect-notice').innerHTML =
+            'Tự động chuyển hướng đã được hủy. Nhấn nút để quay lại ứng dụng.';
+        }
+      });
     </script>
   </body>
 </html>

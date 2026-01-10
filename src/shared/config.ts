@@ -50,6 +50,9 @@ const configSchema = z.object({
   SEPAY_ERROR_URL: z.string(),
   SEPAY_CANCEL_URL: z.string(),
 
+  // Frontend application base URL for payment result page redirects
+  FRONTEND_BASE_URL: z.string().default('http://localhost:3001'),
+
 });
 
 const configServer = configSchema.safeParse(process.env);
